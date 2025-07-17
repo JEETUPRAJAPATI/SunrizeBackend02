@@ -83,6 +83,22 @@ app.use('/uploads', express.static('uploads'));
     // Static file serving for uploaded images
     app.use('/uploads', express.static('uploads'));
 
+    // Placeholder image endpoint - no auth required for UI elements
+    app.get('/api/placeholder/:width/:height', (req, res) => {
+      const { width, height } = req.params;
+      // Generate a simple SVG placeholder
+      const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#f3f4f6"/>
+        <rect x="2" y="2" width="${width-4}" height="${height-4}" fill="#e5e7eb" rx="4"/>
+        <circle cx="${width/2}" cy="${height/2-4}" r="8" fill="#9ca3af"/>
+        <rect x="${width/2-6}" y="${height/2+4}" width="12" height="2" fill="#9ca3af" rx="1"/>
+      </svg>`;
+      
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      res.send(svg);
+    });
+
     // Serve test file for debugging
     app.get('/test-profile', (req, res) => {
       res.sendFile(path.join(process.cwd(), 'test-profile.html'));

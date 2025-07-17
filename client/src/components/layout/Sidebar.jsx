@@ -26,7 +26,8 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
-  Building
+  Building,
+  PieChart
 } from 'lucide-react';
 
 const menuItems = [
@@ -70,7 +71,8 @@ const menuItems = [
     icon: TrendingUp,
     module: 'sales',
     submodules: [
-      { label: 'My Indent', path: '/sales/my-indent', feature: 'myIndent' },
+      { label: 'Sales Dashboard', path: '/sales-dashboard', feature: 'salesDashboard' },
+      { label: 'My Orders', path: '/sales/orders', feature: 'myIndent' },
       { label: 'My Customers', path: '/sales/my-customers', feature: 'myCustomers' },
       { label: 'My Deliveries', path: '/sales/my-deliveries', feature: 'myDeliveries' },
       { label: 'My Invoices', path: '/sales/my-invoices', feature: 'myInvoices' },

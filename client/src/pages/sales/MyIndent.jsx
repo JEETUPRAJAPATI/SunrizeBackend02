@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { useLocation } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Search, 
   Plus, 
@@ -27,11 +29,19 @@ import {
   XCircle,
   FileCheck,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  Upload,
+  X,
+  TrendingUp,
+  ShoppingCart
 } from 'lucide-react';
 
-const MyIndent = () => {
+const MyOrders = () => {
   const { hasFeatureAccess, canPerformAction } = usePermissions();
+  const [, setLocation] = useLocation();
   
   // Check if user has access to myIndent feature
   if (!hasFeatureAccess('sales', 'myIndent', 'view')) {
@@ -39,19 +49,22 @@ const MyIndent = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Access Denied</h2>
-          <p className="text-gray-600 dark:text-gray-400">You don't have permission to view My Indent.</p>
+          <p className="text-gray-600 dark:text-gray-400">You don't have permission to view My Orders.</p>
         </div>
       </div>
     );
   }
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('All Categories');
+  const [orderDate, setOrderDate] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedIndent, setSelectedIndent] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -63,52 +76,112 @@ const MyIndent = () => {
     products: [{ productId: '', productName: '', quantity: '' }] // Array of products with quantities
   });
 
-  // Simplified dummy indent data with only essential fields
-  const [indents, setIndents] = useState([
+  // Product categories matching the reference design exactly
+  const productCategories = [
     {
-      id: 'IND-2025-001',
+      id: 'buns',
+      name: 'Buns',
+      products: [
+        { id: 'cream-bun-chocolate', name: 'Cream Bun - Chocolate', unitPrice: 15 },
+        { id: 'cream-bun-strawberry', name: 'Cream Bun - Strawberry', unitPrice: 15 },
+        { id: 'cream-bun-vanilla', name: 'Cream Bun - Vanilla', unitPrice: 15 }
+      ]
+    },
+    {
+      id: 'cakes',
+      name: 'Cakes & Cookies',
+      products: [
+        { id: 'chocolate-cup-cakes', name: 'Chocolate Cup Cakes - 6 Nos', unitPrice: 45 },
+        { id: 'fruit-cup-cakes', name: 'Fruit Cup Cakes - 6 Nos', unitPrice: 45 },
+        { id: 'vanilla-cup-cakes', name: 'Vanilla Cup Cakes - 6 Nos', unitPrice: 45 },
+        { id: 'coconut-cookies', name: 'Coconut Cookies 200g', unitPrice: 30 },
+        { id: 'osmania-biscuits', name: 'Osmania Biscuits 200g', unitPrice: 25 },
+        { id: 'fruit-cookies', name: 'Fruit Cookies 200g', unitPrice: 32 },
+        { id: 'butter-cookies', name: 'Butter Cookies 200g', unitPrice: 35 },
+        { id: 'ragi-cookies', name: 'Ragi Cookies 200g', unitPrice: 28 }
+      ]
+    }
+  ];
+
+  // Customer dummy data for the dropdown
+  const customers = [
+    { id: 'padmavathi-bakery', name: 'Padmavathi Bakery' },
+    { id: 'royal-sweets', name: 'Royal Sweets & Bakery' },
+    { id: 'golden-bread', name: 'Golden Bread House' },
+    { id: 'fresh-bakes', name: 'Fresh Bakes Corner' },
+    { id: 'sunrise-bakery', name: 'Sunrise Bakery' }
+  ];
+
+  // Manufacturing orders with steel products and images
+  const [orders, setOrders] = useState([
+    {
+      id: 'ORD-2025-001',
       customerName: 'ABC Manufacturing Ltd',
-      orderDate: '2025-01-05',
-      status: 'Approved',
-      totalQuantity: 75,
-      remarks: 'Urgent delivery required',
-      createdAt: '2025-01-05'
-    },
-    {
-      id: 'IND-2025-002',
-      customerName: 'XYZ Industries',
-      orderDate: '2025-01-04',
+      orderDate: '2025-01-17',
       status: 'Pending',
-      totalQuantity: 120,
-      remarks: 'Standard delivery terms',
-      createdAt: '2025-01-04'
+      totalQuantity: 450,
+      orderAmount: '₹82,450',
+      address: '123 Industrial Area, Mumbai, Maharashtra',
+      items: [
+        {
+          id: 1,
+          name: 'MS Round Bar - 12mm',
+          category: 'Steel',
+          quantity: 200,
+          unitCost: 85.50,
+          totalCost: 17100.00,
+          image: 'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=100&h=100&fit=crop'
+        },
+        {
+          id: 2,
+          name: 'MS Angle - 40x40x5mm',
+          category: 'Steel',
+          quantity: 150,
+          unitCost: 92.00,
+          totalCost: 13800.00,
+          image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=100&h=100&fit=crop'
+        },
+        {
+          id: 3,
+          name: 'MS Plate - 10mm',
+          category: 'Steel',
+          quantity: 100,
+          unitCost: 125.00,
+          totalCost: 12500.00,
+          image: 'https://images.unsplash.com/photo-1572883454114-1cf0031ede2a?w=100&h=100&fit=crop'
+        }
+      ],
+      createdAt: '2025-01-17'
     },
     {
-      id: 'IND-2025-003',
-      customerName: 'Global Enterprises',
-      orderDate: '2025-01-03',
-      status: 'Processing',
-      totalQuantity: 50,
-      remarks: 'Quality check required',
-      createdAt: '2025-01-03'
-    },
-    {
-      id: 'IND-2025-004',
-      customerName: 'Tech Solutions Inc',
-      orderDate: '2025-01-02',
-      status: 'Completed',
-      totalQuantity: 200,
-      remarks: 'Express delivery completed',
-      createdAt: '2025-01-02'
-    },
-    {
-      id: 'IND-2025-005',
-      customerName: 'Manufacturing Co',
-      orderDate: '2025-01-01',
-      status: 'Cancelled',
-      totalQuantity: 85,
-      remarks: 'Customer request cancellation',
-      createdAt: '2025-01-01'
+      id: 'ORD-2025-002',
+      customerName: 'XYZ Industries',
+      orderDate: '2025-01-16',
+      status: 'Approved',
+      totalQuantity: 320,
+      orderAmount: '₹65,750',
+      address: '456 Commercial Street, Delhi, India',
+      items: [
+        {
+          id: 1,
+          name: 'SS Round Bar - 10mm (304)',
+          category: 'Stainless Steel',
+          quantity: 180,
+          unitCost: 185.00,
+          totalCost: 33300.00,
+          image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=100&h=100&fit=crop'
+        },
+        {
+          id: 2,
+          name: 'Aluminum Sheet - 2mm',
+          category: 'Aluminum',
+          quantity: 140,
+          unitCost: 95.00,
+          totalCost: 13300.00,
+          image: 'https://images.unsplash.com/photo-1607400201515-c97c0f3532b2?w=100&h=100&fit=crop'
+        }
+      ],
+      createdAt: '2025-01-16'
     }
   ]);
 
@@ -124,7 +197,7 @@ const MyIndent = () => {
     { id: 'C008', name: 'Premium Manufacturing' }
   ];
 
-  // Manufacturing Product List for Indents
+  // Manufacturing Product List for Orders
   const productsList = [
     // Steel Products
     { id: 'P001', name: 'MS Round Bar - 8mm', code: 'MSR-8', unit: 'Kg', category: 'Steel' },
@@ -206,15 +279,20 @@ const MyIndent = () => {
     { id: 'P065', name: 'Conduit Pipe - 25mm', code: 'CP-25', unit: 'Meter', category: 'Electrical' }
   ];
 
-  const filteredIndents = indents.filter(indent => {
+  const filteredOrders = orders.filter(order => {
     const matchesSearch = 
-      indent.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      indent.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      indent.remarks.toLowerCase().includes(searchTerm.toLowerCase());
+      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.remarks.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || indent.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    const matchesCategory = categoryFilter === 'All Categories' || 
+      (order.items && order.items.some(item => item.category === categoryFilter));
+    
+    const matchesDate = !orderDate || order.orderDate === orderDate;
+    
+    return matchesSearch && matchesStatus && matchesCategory && matchesDate;
   });
 
   const resetForm = () => {
@@ -228,17 +306,17 @@ const MyIndent = () => {
 
   const handleCreate = () => {
     const totalQuantity = formData.products.reduce((sum, product) => sum + (parseInt(product.quantity) || 0), 0);
-    const newIndent = {
-      id: `IND-2025-${(indents.length + 1).toString().padStart(3, '0')}`,
+    const newOrder = {
+      id: `ORD-2025-${(orders.length + 1).toString().padStart(3, '0')}`,
       customerName: formData.customerName,
       orderDate: formData.orderDate,
       remarks: formData.remarks,
       products: formData.products.filter(p => p.productId && p.quantity), // Only include products with ID and quantity
-      status: 'Pending', // Default status for new indents
+      status: 'Pending', // Default status for new orders
       totalQuantity: totalQuantity,
       createdAt: new Date().toISOString().split('T')[0]
     };
-    setIndents([...indents, newIndent]);
+    setOrders([...orders, newOrder]);
     setIsCreateModalOpen(false);
     resetForm();
   };
@@ -279,30 +357,30 @@ const MyIndent = () => {
     setFormData({ ...formData, products: updatedProducts });
   };
 
-  const handleEdit = (indent) => {
-    setSelectedIndent(indent);
+  const handleEdit = (order) => {
+    setSelectedOrder(order);
     
-    // Check if the indent has multiple products stored, otherwise create from legacy single product format
+    // Check if the order has multiple products stored, otherwise create from legacy single product format
     let productsToEdit = [];
     
-    if (indent.products && indent.products.length > 0) {
+    if (order.products && order.products.length > 0) {
       // New format with multiple products
-      productsToEdit = indent.products.map(product => ({
+      productsToEdit = order.products.map(product => ({
         productId: product.productId || '',
         quantity: product.quantity || ''
       }));
     } else {
       // Legacy format with single product - convert to new format
       productsToEdit = [{
-        productId: indent.selectedProduct ? productsList.find(p => p.name === indent.selectedProduct)?.id || '' : '',
-        quantity: indent.productQuantity || indent.totalQuantity || ''
+        productId: order.selectedProduct ? productsList.find(p => p.name === order.selectedProduct)?.id || '' : '',
+        quantity: order.productQuantity || order.totalQuantity || ''
       }];
     }
     
     setEditFormData({
-      customerName: indent.customerName,
-      orderDate: indent.orderDate,
-      remarks: indent.remarks,
+      customerName: order.customerName,
+      orderDate: order.orderDate,
+      remarks: order.remarks,
       products: productsToEdit
     });
     
@@ -322,8 +400,8 @@ const MyIndent = () => {
     }
     
     const totalQuantity = validProducts.reduce((sum, product) => sum + (parseInt(product.quantity) || 0), 0);
-    const updatedIndent = {
-      ...selectedIndent,
+    const updatedOrder = {
+      ...selectedOrder,
       customerName: editFormData.customerName,
       orderDate: editFormData.orderDate,
       remarks: editFormData.remarks,
@@ -334,10 +412,10 @@ const MyIndent = () => {
       productQuantity: totalQuantity
     };
     
-    const updatedIndents = indents.map(indent => 
-      indent.id === selectedIndent.id ? updatedIndent : indent
+    const updatedOrders = orders.map(order => 
+      order.id === selectedOrder.id ? updatedOrder : order
     );
-    setIndents(updatedIndents);
+    setOrders(updatedOrders);
     setIsEditModalOpen(false);
     setEditFormData({
       customerName: '',
@@ -348,14 +426,14 @@ const MyIndent = () => {
     setEditProductDropdownStates([false]);
   };
 
-  const handleView = (indent) => {
-    setSelectedIndent(indent);
+  const handleView = (order) => {
+    setSelectedOrder(order);
     setIsViewModalOpen(true);
   };
 
   const handleDelete = (id) => {
-    if (confirm('Are you sure you want to delete this indent?')) {
-      setIndents(indents.filter(indent => indent.id !== id));
+    if (confirm('Are you sure you want to delete this order?')) {
+      setOrders(orders.filter(order => order.id !== id));
     }
   };
 
@@ -385,282 +463,270 @@ const MyIndent = () => {
     }
   };
 
-  // Create new form component to fix input focus issues and support multiple products
-  const CreateIndentForm = () => {
+  // New Order Form Component (Based on Reference Design)
+  const CreateOrderForm = () => {
     const [localFormData, setLocalFormData] = useState({
       customerName: '',
       orderDate: new Date().toISOString().split('T')[0],
-      remarks: '',
-      products: [{ productId: '', productName: '', quantity: '' }]
+      products: {}  // Product quantities keyed by product ID
     });
     const [localCustomerOpen, setLocalCustomerOpen] = useState(false);
-    const [productDropdownStates, setProductDropdownStates] = useState([false]);
+    const [expandedCategories, setExpandedCategories] = useState({
+      buns: false,
+      cakes: true  // Cakes & Cookies expanded by default as shown in reference
+    });
 
-    // Add new product row
-    const addLocalProductRow = () => {
-      setLocalFormData({
-        ...localFormData,
-        products: [...localFormData.products, { productId: '', productName: '', quantity: '' }]
-      });
-      setProductDropdownStates([...productDropdownStates, false]);
+    // Toggle category expansion
+    const toggleCategory = (categoryId) => {
+      setExpandedCategories(prev => ({
+        ...prev,
+        [categoryId]: !prev[categoryId]
+      }));
     };
 
-    // Remove product row
-    const removeLocalProductRow = (index) => {
-      if (localFormData.products.length > 1) {
-        const updatedProducts = localFormData.products.filter((_, i) => i !== index);
-        const updatedDropdownStates = productDropdownStates.filter((_, i) => i !== index);
-        setLocalFormData({ ...localFormData, products: updatedProducts });
-        setProductDropdownStates(updatedDropdownStates);
-      }
-    };
-
-    // Helper function to toggle specific dropdown
-    const toggleProductDropdown = (index, isOpen) => {
-      const updatedStates = [...productDropdownStates];
-      updatedStates[index] = isOpen;
-      setProductDropdownStates(updatedStates);
-    };
-
-    // Update product in specific row
-    const updateLocalProductRow = (index, field, value) => {
-      const updatedProducts = localFormData.products.map((product, i) => {
-        if (i === index) {
-          if (field === 'productId') {
-            const selectedProduct = productsList.find(p => p.id === value);
-            return {
-              ...product,
-              productId: value,
-              productName: selectedProduct ? selectedProduct.name : ''
-            };
-          } else {
-            return { ...product, [field]: value };
-          }
+    // Update product quantity
+    const updateProductQuantity = (productId, quantity) => {
+      const numQuantity = parseInt(quantity) || 0;
+      setLocalFormData(prev => ({
+        ...prev,
+        products: {
+          ...prev.products,
+          [productId]: numQuantity > 0 ? numQuantity : undefined
         }
-        return product;
-      });
-      setLocalFormData({ ...localFormData, products: updatedProducts });
+      }));
     };
 
-    const handleSubmit = () => {
+    // Calculate total quantity for each category
+    const getTotalQuantity = () => {
+      return Object.values(localFormData.products).reduce((total, qty) => {
+        return total + (parseInt(qty) || 0);
+      }, 0);
+    };
+
+    // Handle form submission
+    const handleLocalSubmit = () => {
       if (!localFormData.customerName || !localFormData.orderDate) {
         return;
       }
       
-      const validProducts = localFormData.products.filter(p => p.productId && p.quantity);
+      // Convert products object to array format for storage
+      const validProducts = Object.entries(localFormData.products)
+        .filter(([productId, quantity]) => productId && quantity > 0)
+        .map(([productId, quantity]) => {
+          const product = productCategories
+            .flatMap(cat => cat.products)
+            .find(p => p.id === productId);
+          return {
+            productId,
+            productName: product?.name || '',
+            quantity: quantity,
+            category: product?.category || '',
+            unitPrice: product?.unitPrice || 0,
+            totalPrice: (product?.unitPrice || 0) * quantity
+          };
+        });
+        
       if (validProducts.length === 0) {
         return;
       }
       
-      const totalQuantity = validProducts.reduce((sum, product) => sum + (parseInt(product.quantity) || 0), 0);
-      const newIndent = {
-        id: `IND-2025-${(indents.length + 1).toString().padStart(3, '0')}`,
+      const totalQuantity = validProducts.reduce((sum, product) => sum + product.quantity, 0);
+      const totalAmount = validProducts.reduce((sum, product) => sum + product.totalPrice, 0);
+      
+      const newOrder = {
+        id: `ORD-2025-${(orders.length + 1).toString().padStart(3, '0')}`,
         customerName: localFormData.customerName,
         orderDate: localFormData.orderDate,
-        remarks: localFormData.remarks,
         products: validProducts,
         status: 'Pending',
         totalQuantity: totalQuantity,
+        orderAmount: `₹${totalAmount.toFixed(2)}`,
         createdAt: new Date().toISOString().split('T')[0]
       };
       
-      setIndents([...indents, newIndent]);
+      setOrders([...orders, newOrder]);
       setIsCreateModalOpen(false);
       setLocalFormData({
         customerName: '',
         orderDate: new Date().toISOString().split('T')[0],
-        remarks: '',
-        products: [{ productId: '', productName: '', quantity: '' }]
+        products: {}
       });
-      setProductDropdownStates([false]);
     };
 
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="customerName">Customer Name *</Label>
-            <Popover open={localCustomerOpen} onOpenChange={setLocalCustomerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={localCustomerOpen}
-                  className="w-full justify-between"
-                >
-                  {localFormData.customerName || "Select customer..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput placeholder="Search customer..." />
-                  <CommandEmpty>No customer found.</CommandEmpty>
-                  <CommandGroup>
-                    {customersList.map((customer) => (
-                      <CommandItem
-                        key={customer.id}
-                        value={customer.name}
-                        onSelect={(currentValue) => {
-                          const selectedCustomer = customersList.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
-                          if (selectedCustomer) {
-                            setLocalFormData({ 
-                              ...localFormData, 
-                              customerName: selectedCustomer.name
-                            });
-                          }
-                          setLocalCustomerOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={`mr-2 h-4 w-4 ${
-                            localFormData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
-                          }`}
-                        />
-                        {customer.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+      <div className="bg-white dark:bg-gray-900">
+        {/* Header with Close Button and Submit */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-red-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">New Order</h2>
           </div>
-          <div>
-            <Label htmlFor="orderDate">Order Date *</Label>
-            <Input
-              id="orderDate"
-              type="date"
-              value={localFormData.orderDate}
-              onChange={(e) => setLocalFormData({ ...localFormData, orderDate: e.target.value })}
-            />
+          <div className="flex items-center space-x-3">
+            <Button 
+              onClick={handleLocalSubmit}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+              disabled={!localFormData.customerName || !localFormData.orderDate}
+            >
+              Submit
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 
-        {/* Products Section */}
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">Products *</Label>
-          
-          {localFormData.products.map((product, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="md:col-span-2">
-                <Label>Product Selection *</Label>
-                <Popover open={productDropdownStates[index]} onOpenChange={(isOpen) => toggleProductDropdown(index, isOpen)}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={productDropdownStates[index]}
-                      className="w-full justify-between"
-                    >
-                      {product.productId
-                        ? productsList.find((prod) => prod.id === product.productId)?.name
-                        : "Select product..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" side="bottom" align="start" sideOffset={4}>
-                    <Command>
-                      <CommandInput placeholder="Search products..." />
-                      <CommandEmpty>No product found.</CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {productsList.map((prod) => (
-                          <CommandItem
-                            key={prod.id}
-                            value={prod.name}
-                            onSelect={() => {
-                              updateLocalProductRow(index, 'productId', prod.id);
-                              toggleProductDropdown(index, false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${
-                                product.productId === prod.id ? "opacity-100" : "opacity-0"
-                              }`}
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{prod.name}</span>
-                              <span className="text-sm text-gray-500">Code: {prod.code} | Unit: {prod.unit}</span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="md:col-span-1">
-                <Label>Quantity *</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter quantity"
-                  value={product.quantity}
-                  onChange={(e) => updateLocalProductRow(index, 'quantity', e.target.value)}
-                  className="w-full min-w-[120px]"
-                />
-              </div>
-              <div className="md:col-span-1 flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={addLocalProductRow}
-                  className="px-2"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                {localFormData.products.length > 1 && (
+        {/* Form Content */}
+        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[calc(95vh-80px)] sm:max-h-[calc(90vh-80px)] overflow-y-auto">
+          {/* Customer and Date Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Select Customer
+              </Label>
+              <Popover open={localCustomerOpen} onOpenChange={setLocalCustomerOpen}>
+                <PopoverTrigger asChild>
                   <Button
-                    type="button"
                     variant="outline"
-                    size="sm"
-                    onClick={() => removeLocalProductRow(index)}
-                    className="px-2"
+                    role="combobox"
+                    aria-expanded={localCustomerOpen}
+                    className="w-full justify-between h-10 px-3 text-left bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <span className="truncate text-sm">
+                      {localFormData.customerName || "Padmavathi Ba..."}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
-                )}
-              </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search customer..." className="h-9" />
+                    <CommandEmpty>No customer found.</CommandEmpty>
+                    <CommandGroup>
+                      {customers.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          value={customer.name}
+                          onSelect={(currentValue) => {
+                            const selectedCustomer = customers.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
+                            if (selectedCustomer) {
+                              setLocalFormData({ 
+                                ...localFormData, 
+                                customerName: selectedCustomer.name
+                              });
+                            }
+                            setLocalCustomerOpen(false);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              localFormData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          {customer.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
-          ))}
-        </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Order Date
+              </Label>
+              <Input
+                type="date"
+                value={localFormData.orderDate}
+                onChange={(e) => setLocalFormData({ ...localFormData, orderDate: e.target.value })}
+                className="h-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+              />
+            </div>
+          </div>
 
-        {/* Remarks Section */}
-        <div>
-          <Label htmlFor="remarks">Remarks</Label>
-          <Textarea
-            id="remarks"
-            placeholder="Enter any remarks or special instructions"
-            value={localFormData.remarks}
-            onChange={(e) => setLocalFormData({ ...localFormData, remarks: e.target.value })}
-            rows={3}
-          />
-        </div>
+          {/* Product Categories Section - Mobile Optimized */}
+          <div className="space-y-2 flex-1 min-h-0">
+            {productCategories.map((category) => (
+              <div key={category.id} className="border border-gray-200 dark:border-gray-700 rounded">
+                <Collapsible
+                  open={expandedCategories[category.id]}
+                  onOpenChange={() => toggleCategory(category.id)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                      <div className="flex items-center space-x-2">
+                        {expandedCategories[category.id] ? (
+                          <ChevronDown className="h-4 w-4 text-red-600" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        )}
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {category.name}
+                        </span>
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
 
-        <div className="flex justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setIsCreateModalOpen(false);
-              setLocalFormData({
-                customerName: '',
-                orderDate: new Date().toISOString().split('T')[0],
-                remarks: '',
-                products: [{ productId: '', productName: '', quantity: '' }]
-              });
-              setProductDropdownStates([false]);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!localFormData.customerName || !localFormData.orderDate || localFormData.products.filter(p => p.productId && p.quantity).length === 0}
-          >
-            Create Indent
-          </Button>
+                  <CollapsibleContent>
+                    <div className="bg-white dark:bg-gray-900 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
+                      {/* Table Header */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400 uppercase border-b sticky top-0">
+                        <div>ITEM NAME</div>
+                        <div className="text-right">QUANTITY</div>
+                      </div>
+                      
+                      {/* Products */}
+                      <div className="space-y-0">
+                        {category.products.map((product) => (
+                          <div key={product.id} className="grid grid-cols-2 gap-2 sm:gap-4 p-2 sm:p-3 border-b border-gray-100 dark:border-gray-700 items-center">
+                            <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 dark:bg-orange-900/30 rounded flex items-center justify-center text-xs flex-shrink-0">
+                                {category.id === 'breads' ? '🍞' : 
+                                 category.id === 'buns' ? '🥖' : 
+                                 category.id === 'cakes' ? '🧁' : '🍞'}
+                              </div>
+                              <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">
+                                {product.name}
+                              </span>
+                            </div>
+                            <div className="flex justify-end">
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={localFormData.products[product.id] || ''}
+                                onChange={(e) => updateProductQuantity(product.id, e.target.value)}
+                                className="w-12 h-7 sm:w-16 sm:h-8 text-center text-xs sm:text-sm border-gray-300 dark:border-gray-600"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Totals Row */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 font-medium border-t sticky bottom-0">
+                        <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Totals</div>
+                        <div className="text-right text-xs sm:text-sm text-gray-900 dark:text-gray-100">
+                          {getTotalQuantity()}
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   };
+
+  // Edit Order Form Component (Simplified for now)
 
   // Edit form component with multiple products support
   const [editFormData, setEditFormData] = useState({
@@ -700,7 +766,7 @@ const MyIndent = () => {
     setEditProductDropdownStates(updatedStates);
   };
 
-  const EditIndentForm = () => (
+  const EditOrderForm = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -867,7 +933,159 @@ const MyIndent = () => {
     </div>
   );
 
+  // Edit Order Modal Component
+  const EditOrderModal = ({ order }) => {
+    const [editQuantities, setEditQuantities] = useState({});
+    const [openCategories, setOpenCategories] = useState(new Set(['Steel', 'Stainless Steel', 'Aluminum']));
 
+    // Initialize quantities when order is passed
+    useState(() => {
+      const quantities = {};
+      order.items?.forEach(item => {
+        quantities[item.id] = item.quantity;
+      });
+      setEditQuantities(quantities);
+    }, [order]);
+
+    // Group items by category
+    const groupedItems = useMemo(() => {
+      const groups = {};
+      order.items?.forEach(item => {
+        if (!groups[item.category]) {
+          groups[item.category] = [];
+        }
+        groups[item.category].push(item);
+      });
+      return groups;
+    }, [order]);
+
+    const updateQuantity = (itemId, quantity) => {
+      setEditQuantities(prev => ({
+        ...prev,
+        [itemId]: Math.max(0, parseInt(quantity) || 0)
+      }));
+    };
+
+    const toggleCategory = (category) => {
+      setOpenCategories(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(category)) {
+          newSet.delete(category);
+        } else {
+          newSet.add(category);
+        }
+        return newSet;
+      });
+    };
+
+    const getTotalQuantity = () => {
+      return Object.values(editQuantities).reduce((sum, qty) => sum + (qty || 0), 0);
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Order Header Info */}
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div>
+            <Label className="text-xs text-gray-500">Order#</Label>
+            <p className="font-medium">{order.id}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Order Date</Label>
+            <p className="font-medium">{order.orderDate}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Order Status</Label>
+            <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              {order.status}
+            </Badge>
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Customer Name</Label>
+            <p className="font-medium">{order.customerName}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Order Amount</Label>
+            <p className="font-medium">{order.orderAmount}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Total Items</Label>
+            <p className="font-medium">{getTotalQuantity() || order.totalQuantity}</p>
+          </div>
+        </div>
+
+        {/* Address */}
+        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <Label className="text-xs text-gray-500">Address</Label>
+          <p className="text-sm">{order.address}</p>
+        </div>
+
+        {/* Items by Category */}
+        <div className="space-y-3">
+          {Object.entries(groupedItems).map(([category, items]) => (
+            <Collapsible
+              key={category}
+              open={openCategories.has(category)}
+              onOpenChange={() => toggleCategory(category)}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                <div className="flex items-center space-x-2">
+                  <ChevronDown className={`h-4 w-4 transition-transform ${openCategories.has(category) ? 'rotate-180' : ''}`} />
+                  <span className="font-medium text-sm">{category}</span>
+                </div>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="pt-2">
+                <div className="space-y-2">
+                  {/* Header */}
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                    <div className="col-span-6">Item Name</div>
+                    <div className="col-span-6 text-center">Quantity</div>
+                  </div>
+                  
+                  {/* Items */}
+                  {items.map((item) => (
+                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="col-span-1">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-10 h-10 object-cover rounded border"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNiAxNkMyMC40MTgzIDE2IDI0IDE5LjU4MTcgMjQgMjRTMjAuNDE4MyAzMiAxNiAzMlM4IDI4LjQxODMgOCAyNFMxMS41ODE3IDE2IDE2IDE2WiIgZmlsbD0iI0Q1RDNEOCI+Cjwvc3ZnPgo=';
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-8">
+                        <p className="font-medium text-sm">{item.name}</p>
+                      </div>
+                      <div className="col-span-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={editQuantities[item.id] !== undefined ? editQuantities[item.id] : item.quantity}
+                          onChange={(e) => updateQuantity(item.id, e.target.value)}
+                          className="text-center"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
+
+        {/* Totals */}
+        <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg font-medium">
+          <span>Totals</span>
+          <span>{getTotalQuantity() || order.totalQuantity}</span>
+          <span>{order.orderAmount}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
@@ -876,8 +1094,8 @@ const MyIndent = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center space-x-2 sm:space-x-3">
             <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
-            <h1 className="text-lg sm:text-xl font-semibold">My Indent</h1>
-            <span className="hidden lg:inline text-blue-100 text-sm">Manage and track your sales indents</span>
+            <h1 className="text-lg sm:text-xl font-semibold">My Orders</h1>
+            <span className="hidden lg:inline text-blue-100 text-sm">Manage and track your sales orders</span>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-3">
             {canPerformAction('sales', 'myIndent', 'add') && (
@@ -885,17 +1103,17 @@ const MyIndent = () => {
                 <DialogTrigger asChild>
                   <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2">
                     <Plus className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Create Indent</span>
+                    <span className="hidden sm:inline">Create Order</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl mx-4" key="create-indent-modal">
+                <DialogContent className="max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" key="create-indent-modal">
                   <DialogHeader>
-                    <DialogTitle>Create New Indent</DialogTitle>
+                    <DialogTitle>Create New Order</DialogTitle>
                     <DialogDescription>
-                      Fill in the details to create a new production indent.
+                      Fill in the details to create a new production order.
                     </DialogDescription>
                   </DialogHeader>
-                  <CreateIndentForm />
+                  <CreateOrderForm />
                 </DialogContent>
               </Dialog>
             )}
@@ -912,8 +1130,8 @@ const MyIndent = () => {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Indents</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{indents.length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Orders</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{orders.length}</p>
             </div>
             <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
           </div>
@@ -923,7 +1141,7 @@ const MyIndent = () => {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {indents.filter(i => i.status === 'Pending').length}
+                {orders.filter(o => o.status === 'Pending').length}
               </p>
             </div>
             <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
@@ -934,7 +1152,7 @@ const MyIndent = () => {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Approved</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {indents.filter(i => i.status === 'Approved').length}
+                {orders.filter(o => o.status === 'Approved').length}
               </p>
             </div>
             <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
@@ -945,7 +1163,7 @@ const MyIndent = () => {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {indents.filter(i => i.status === 'Completed').length}
+                {orders.filter(o => o.status === 'Completed').length}
               </p>
             </div>
             <FileCheck className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
@@ -953,182 +1171,263 @@ const MyIndent = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+      {/* Header with Orders title and New Order button */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <Package className="h-5 w-5 text-red-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Orders</h2>
+          </div>
+          {canPerformAction('sales', 'myIndent', 'add') && (
+            <Button 
+              className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2"
+              onClick={() => setLocation('/sales/new-order')}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              New Order
+            </Button>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Select Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Categories">All Categories</SelectItem>
+                <SelectItem value="Steel">Steel</SelectItem>
+                <SelectItem value="Stainless Steel">Stainless Steel</SelectItem>
+                <SelectItem value="Aluminum">Aluminum</SelectItem>
+                <SelectItem value="Copper">Copper</SelectItem>
+                <SelectItem value="Pipes">Pipes</SelectItem>
+                <SelectItem value="Fasteners">Fasteners</SelectItem>
+                <SelectItem value="Electrical">Electrical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Order Date</Label>
+            <Input
+              type="date"
+              placeholder="DD/MM/YYYY"
+              value={orderDate}
+              onChange={(e) => setOrderDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter By Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">None</SelectItem>
+                <SelectItem value="Created">Created</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Search indents..."
+                type="text"
+                placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+        </div>
+
+        {/* My Orders List Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">My Orders List</h3>
+          <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
+            <Upload className="h-4 w-4 mr-2" />
+            EXPORT
+          </Button>
+        </div>
+
+        {/* Clean Orders Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Table Header */}
+          <div className="grid grid-cols-4 gap-4 py-3 px-6 bg-gray-50 dark:bg-gray-900 text-sm font-medium text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+            <div>ORDER #</div>
+            <div>ORDER DATE</div>
+            <div>CUST. NAME</div>
+            <div className="text-center">MORE</div>
+          </div>
+
+          {/* Orders List */}
+          {filteredOrders.map((order) => (
+            <div key={order.id} className="grid grid-cols-4 gap-4 py-4 px-6 items-center border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-750">
+              <div className="font-medium text-gray-900 dark:text-gray-100">{order.id}</div>
+              <div className="text-gray-600 dark:text-gray-400">{order.orderDate}</div>
+              <div className="text-gray-600 dark:text-gray-400 truncate">{order.customerName}</div>
+              <div className="text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleView(order)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium text-sm px-4 py-1"
+                >
+                  MORE
+                </Button>
+              </div>
+            </div>
+          ))}
+          
+          {/* Empty State */}
+          {filteredOrders.length === 0 && (
+            <div className="py-12 text-center">
+              <div className="text-gray-500 dark:text-gray-400">No orders found</div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-medium mb-4">Indent List</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Indent ID</TableHead>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Order Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Product Quantity</TableHead>
-              <TableHead>Remarks</TableHead>
-              {(canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('sales', 'myIndent', 'delete')) && (
-                <TableHead className="text-right">Actions</TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredIndents.map((indent) => (
-              <TableRow key={indent.id}>
-                <TableCell className="font-medium">{indent.id}</TableCell>
-                <TableCell>{indent.customerName}</TableCell>
-                <TableCell>{indent.orderDate}</TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(indent.status)} className="flex items-center gap-1 w-fit">
-                    {getStatusIcon(indent.status)}
-                    {indent.status}
-                  </Badge>
-                </TableCell>
-              <TableCell>{indent.productQuantity || indent.totalQuantity}</TableCell>
-                <TableCell className="max-w-xs truncate">{indent.remarks}</TableCell>
-                {(canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('sales', 'myIndent', 'delete')) && (
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(indent)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </DropdownMenuItem>
-                        {canPerformAction('sales', 'myIndent', 'edit') && (
-                          <DropdownMenuItem onClick={() => handleEdit(indent)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        {canPerformAction('sales', 'myIndent', 'delete') && (
-                          <DropdownMenuItem onClick={() => handleDelete(indent.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Indent</DialogTitle>
-            <DialogDescription>
-              Update the indent details below.
-            </DialogDescription>
-          </DialogHeader>
-          <EditIndentForm />
-        </DialogContent>
-      </Dialog>
-
-      {/* View Modal */}
+      {/* View Modal - Enhanced Order Details */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>View Indent Details</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-red-600" />
+              <span>Order Details</span>
+            </DialogTitle>
             <DialogDescription>
-              Complete details of the selected indent.
+              Complete details and product information for the selected order.
             </DialogDescription>
           </DialogHeader>
-          {selectedIndent && (
+          {selectedOrder && (
             <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Indent ID</Label>
-                  <p className="text-sm font-medium">{selectedIndent.id}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Customer Name</Label>
-                  <p className="text-sm font-medium">{selectedIndent.customerName}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Order Date</Label>
-                  <p className="text-sm font-medium">{selectedIndent.orderDate}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <Badge variant={getStatusVariant(selectedIndent.status)} className="flex items-center gap-1 w-fit">
-                    {getStatusIcon(selectedIndent.status)}
-                    {selectedIndent.status}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Created Date</Label>
-                  <p className="text-sm font-medium">{selectedIndent.createdAt}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Total Quantity</Label>
-                  <p className="text-sm font-medium">{selectedIndent.productQuantity || selectedIndent.totalQuantity}</p>
-                </div>
-              </div>
-
-              {/* Products Information */}
-              <div>
-                <Label className="text-sm font-medium text-gray-500 mb-3 block">Product Details</Label>
-                <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-gray-400">Product Name</Label>
-                      <p className="text-sm font-medium">{selectedIndent.selectedProduct || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-gray-400">Quantity</Label>
-                      <p className="text-sm font-medium">{selectedIndent.productQuantity || selectedIndent.totalQuantity || 'N/A'}</p>
-                    </div>
+              {/* Header Information */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Order ID</Label>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">{selectedOrder.id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Customer</Label>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">{selectedOrder.customerName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Order Date</Label>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">{selectedOrder.orderDate}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</Label>
+                    <Badge variant={getStatusVariant(selectedOrder.status)} className="mt-1">
+                      {getStatusIcon(selectedOrder.status)}
+                      <span className="ml-1">{selectedOrder.status}</span>
+                    </Badge>
                   </div>
                 </div>
               </div>
 
-              {/* Remarks */}
-              <div>
-                <Label className="text-sm font-medium text-gray-500">Remarks</Label>
-                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm">{selectedIndent.remarks || 'No remarks provided'}</p>
+              {/* Order Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-300">Total Quantity</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-2">{selectedOrder.totalQuantity || 0}</p>
                 </div>
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-900 dark:text-green-300">Order Amount</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-2">{selectedOrder.orderAmount || '₹0'}</p>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-900 dark:text-orange-300">Created On</span>
+                  </div>
+                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-300 mt-2">{selectedOrder.createdAt || selectedOrder.orderDate}</p>
+                </div>
+              </div>
+
+              {/* Products List */}
+              {selectedOrder.products && selectedOrder.products.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center space-x-2">
+                    <ShoppingCart className="h-5 w-5 text-red-600" />
+                    <span>Products Ordered ({selectedOrder.products.length} items)</span>
+                  </h3>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-6 gap-4 p-3 bg-gray-50 dark:bg-gray-900 text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      <div className="col-span-2">Product Name</div>
+                      <div>Category</div>
+                      <div className="text-center">Quantity</div>
+                      <div className="text-right">Unit Price</div>
+                      <div className="text-right">Total</div>
+                    </div>
+                    
+                    {/* Products */}
+                    {selectedOrder.products.map((product, index) => (
+                      <div key={index} className="grid grid-cols-6 gap-4 p-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 items-center">
+                        <div className="col-span-2">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-sm">
+                              🍞
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {product.productName || product.name || 'Unknown Product'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {product.category || 'General'}
+                        </div>
+                        <div className="text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            {product.quantity || 0}
+                          </span>
+                        </div>
+                        <div className="text-right text-sm font-medium text-gray-900 dark:text-gray-100">
+                          ₹{(product.unitPrice || 0).toFixed(2)}
+                        </div>
+                        <div className="text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          ₹{(product.totalPrice || (product.unitPrice || 0) * (product.quantity || 0)).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Order Actions */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                  Close
+                </Button>
+                {canPerformAction('sales', 'myIndent', 'edit') && (
+                  <Button 
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      setSelectedOrder(selectedOrder);
+                      setIsViewModalOpen(false);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Order
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -1138,4 +1437,4 @@ const MyIndent = () => {
   );
 };
 
-export default MyIndent;
+export default MyOrders;

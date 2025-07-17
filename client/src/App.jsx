@@ -23,14 +23,19 @@ import { useAuth } from "@/hooks/useAuth";
 import MainLayout from "@/components/layout/MainLayout";
 import Profile from "@/pages/Profile";
 import Companies from "@/pages/Companies";
-import MyIndent from "@/pages/sales/MyIndent";
+import MyOrders from "@/pages/sales/MyIndent";
+import NewOrder from "@/pages/sales/NewOrder";
+import OrdersList from "@/pages/sales/OrdersList";
+import EditOrder from "@/pages/sales/EditOrder";
 import MyCustomers from "@/pages/sales/MyCustomers";
 import MyDeliveries from "@/pages/sales/MyDeliveries";
 import MyInvoices from "@/pages/sales/MyInvoices";
 import MyLedger from "@/pages/sales/MyLedger";
 import RefundReturn from "@/pages/sales/RefundReturn";
+import SalesDashboard from "@/pages/SalesDashboard";
 import NewProductionPage from "@/pages/NewProductionPage";
 import ProductionHistoryPage from "@/pages/ProductionHistoryPage";
+import CustomerList from "@/pages/CustomerList";
 function ProtectedRoute({ children, requiredRole = null }) {
   const { user, loading } = useAuth();
 
@@ -106,9 +111,20 @@ function Router() {
         </ProtectedRoute>
       </Route>
       {/* Sales Submodules - specific routes first */}
-      <Route path="/sales/my-indent">
+      <Route path="/sales/orders">
         <ProtectedRoute>
-          <MyIndent />
+          <OrdersList />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sales/new-order">
+        <ProtectedRoute>
+          <NewOrder />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/sales/edit-order">
+        <ProtectedRoute>
+          <EditOrder />
         </ProtectedRoute>
       </Route>
       <Route path="/sales/my-customers">
@@ -143,6 +159,13 @@ function Router() {
           <Sales />
         </ProtectedRoute>
       </Route>
+      
+      {/* Sales Dashboard route */}
+      <Route path="/sales-dashboard">
+        <ProtectedRoute>
+          <SalesDashboard />
+        </ProtectedRoute>
+      </Route>
       <Route path="/accounts">
         <ProtectedRoute>
           <Accounts />
@@ -158,6 +181,7 @@ function Router() {
           <Customers />
         </ProtectedRoute>
       </Route>
+
       <Route path="/suppliers">
         <ProtectedRoute>
           <Suppliers />

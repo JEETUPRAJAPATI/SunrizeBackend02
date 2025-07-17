@@ -17,12 +17,13 @@ import MainLayout from "@/components/layout/MainLayout";
 import Sales from "@/pages/Sales";
 import Accounts from "@/pages/Accounts";
 import Dispatches from "@/pages/Dispatches";
-import MyIndent from "@/pages/sales/MyIndent";
+import MyOrders from "@/pages/sales/MyIndent";
 import MyCustomers from "@/pages/sales/MyCustomers";
 import MyDeliveries from "@/pages/sales/MyDeliveries";
 import MyInvoices from "@/pages/sales/MyInvoices";
 import MyLedger from "@/pages/sales/MyLedger";
 import RefundReturn from "@/pages/sales/RefundReturn";
+import SalesDashboard from "@/pages/SalesDashboard";
 
 function ProtectedRoute({ component: Component, ...props }) {
   const { user, loading } = useAuth();
@@ -49,23 +50,35 @@ function ProtectedRoute({ component: Component, ...props }) {
   );
 }
 
+function RoleDashboard() {
+  const { user } = useAuth();
+  
+  // Show Sales Dashboard for Sales role users
+  if (user?.role === 'Sales') {
+    return <SalesDashboard />;
+  }
+  
+  // Show regular Dashboard for all other roles
+  return <Dashboard />;
+}
+
 function Router() {
   return (
     <Switch>
       {/* Sales Submodules - specific routes first */}
-      <Route path="/sales/indent">
-        <ProtectedRoute component={MyIndent} />
+      <Route path="/sales/orders">
+        <ProtectedRoute component={MyOrders} />
       </Route>
-      <Route path="/sales/customers">
+      <Route path="/sales/my-customers">
         <ProtectedRoute component={MyCustomers} />
       </Route>
-      <Route path="/sales/deliveries">
+      <Route path="/sales/my-deliveries">
         <ProtectedRoute component={MyDeliveries} />
       </Route>
-      <Route path="/sales/invoices">
+      <Route path="/sales/my-invoices">
         <ProtectedRoute component={MyInvoices} />
       </Route>
-      <Route path="/sales/ledger">
+      <Route path="/sales/my-ledger">
         <ProtectedRoute component={MyLedger} />
       </Route>
       <Route path="/sales/refund-return">
@@ -97,11 +110,11 @@ function Router() {
         <ProtectedRoute component={Companies} />
       </Route>
       <Route path="/dashboard">
-        <ProtectedRoute component={Dashboard} />
+        <ProtectedRoute component={RoleDashboard} />
       </Route>
       
       <Route path="/">
-        <ProtectedRoute component={Dashboard} />
+        <ProtectedRoute component={RoleDashboard} />
       </Route>
       
       <Route>

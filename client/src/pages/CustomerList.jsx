@@ -3,10 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserPlus, Search, Menu, MapPin, X } from 'lucide-react';
-import { DialogDescription } from '@/components/ui/dialog';
+import { UserPlus, Search, MapPin, X, Menu } from 'lucide-react';
 
-export default function MyCustomers() {
+export default function CustomerList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColumn, setSelectedColumn] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -238,112 +237,130 @@ export default function MyCustomers() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-6">
-        {/* Customer Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-4">
+    <div className="min-h-screen bg-white">
+      {/* Top Header with Logo and Menu */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center space-x-4">
+            <Menu className="h-6 w-6 text-gray-800" />
             <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">👤</span>
+              <div className="bg-red-600 text-white rounded-full px-3 py-1 text-sm font-bold">
+                EveryDay
               </div>
-              <h1 className="text-lg font-medium text-gray-900">Customers</h1>
+              <span className="text-gray-800 font-medium">Sunrise Foods.</span>
             </div>
-            <Button 
-              onClick={() => setShowAddModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 text-sm font-medium rounded-full"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Customer
-            </Button>
           </div>
-        </div>
-
-        {/* Search Section */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-4 py-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="w-full sm:w-1/2">
-                <label className="block text-sm text-gray-600 mb-2">
-                  Select Search Column
-                </label>
-                <Select value={selectedColumn} onValueChange={setSelectedColumn}>
-                  <SelectTrigger className="w-full h-10 border-gray-300">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Customer Name</SelectItem>
-                    <SelectItem value="id">Customer ID</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-full sm:w-1/2">
-                <label className="block text-sm text-gray-600 mb-2">
-                  Search
-                </label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-10 pr-10 border-gray-300"
-                  />
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+              <span className="text-black text-xs font-bold">👤</span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Customer List */}
-        <div className="bg-white">
-          {/* Table Header */}
-          <div className="border-b border-gray-200">
-            <div className="grid grid-cols-4 gap-4 px-4 py-3">
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUS #</div>
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUSTOMER NAME</div>
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">STATUS</div>
-              <div></div>
+      {/* Customer Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">👤</span>
+            </div>
+            <h1 className="text-lg font-medium text-gray-900">Customers</h1>
+          </div>
+          <Button 
+            onClick={() => setShowAddModal(true)}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 text-sm font-medium rounded-full"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
+        </div>
+      </div>
+
+      {/* Search Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-4 py-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-1/2">
+              <label className="block text-sm text-gray-600 mb-2">
+                Select Search Column
+              </label>
+              <Select value={selectedColumn} onValueChange={setSelectedColumn}>
+                <SelectTrigger className="w-full h-10 border-gray-300">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Customer Name</SelectItem>
+                  <SelectItem value="id">Customer ID</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-1/2">
+              <label className="block text-sm text-gray-600 mb-2">
+                Search
+              </label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-10 pr-10 border-gray-300"
+                />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Customer Rows */}
-          {filteredCustomers.map((customer) => (
-            <div key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <div className="grid grid-cols-4 gap-4 px-4 py-4 items-center">
-                <div className="text-sm font-medium text-gray-900">
-                  {customer.id}
-                </div>
-                <div className="text-sm text-gray-900">
-                  {customer.customerName}
-                </div>
-                <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${
-                    customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                  }`}></div>
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    variant="ghost"
-                    onClick={() => handleMoreClick(customer)}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium uppercase p-0 h-auto"
-                  >
-                    MORE
-                  </Button>
-                </div>
+      {/* Customer List */}
+      <div className="bg-white">
+        {/* Table Header */}
+        <div className="border-b border-gray-200">
+          <div className="grid grid-cols-4 gap-4 px-4 py-3">
+            <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUS #</div>
+            <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUSTOMER NAME</div>
+            <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">STATUS</div>
+            <div></div>
+          </div>
+        </div>
+
+        {/* Customer Rows */}
+        {filteredCustomers.map((customer) => (
+          <div key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
+            <div className="grid grid-cols-4 gap-4 px-4 py-4 items-center">
+              <div className="text-sm font-medium text-gray-900">
+                {customer.id}
+              </div>
+              <div className="text-sm text-gray-900">
+                {customer.customerName}
+              </div>
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-2 ${
+                  customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                }`}></div>
+              </div>
+              <div className="flex justify-end">
+                <Button 
+                  variant="ghost"
+                  onClick={() => handleMoreClick(customer)}
+                  className="text-red-600 hover:text-red-700 text-sm font-medium uppercase p-0 h-auto"
+                >
+                  MORE
+                </Button>
               </div>
             </div>
-          ))}
+          </div>
+        ))}
 
-          {/* Pagination */}
-          <div className="border-t border-gray-200">
-            <div className="flex items-center justify-center py-4">
-              <div className="text-sm text-gray-600">
-                Showing 1 - 10 of 10
-              </div>
+        {/* Pagination */}
+        <div className="border-t border-gray-200">
+          <div className="flex items-center justify-center py-4">
+            <div className="text-sm text-gray-600">
+              Showing 1 - 10 of 10
             </div>
           </div>
         </div>
@@ -352,13 +369,11 @@ export default function MyCustomers() {
       {/* Customer Details Modal */}
       <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
         <DialogContent className="max-w-sm p-0 max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Customer Details</DialogTitle>
-          <DialogDescription className="sr-only">View customer information and details</DialogDescription>
           {selectedCustomer && (
             <div className="bg-white">
               {/* Modal Header - Customer Row Style */}
               <div className="border-b border-gray-100">
-                <div className="grid grid-cols-3 gap-4 px-4 py-4 items-center">
+                <div className="grid grid-cols-4 gap-4 px-4 py-4 items-center">
                   <div className="text-sm font-medium text-gray-900">
                     {selectedCustomer.id}
                   </div>
@@ -369,6 +384,14 @@ export default function MyCustomers() {
                     <div className={`w-2 h-2 rounded-full mr-2 ${
                       selectedCustomer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
                     }`}></div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-700 text-sm font-medium uppercase p-0 h-auto"
+                    >
+                      LESS
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -467,14 +490,27 @@ export default function MyCustomers() {
       {/* Add Customer Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-md p-0 max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Add Customer</DialogTitle>
-          <DialogDescription className="sr-only">Add a new customer to the system</DialogDescription>
           <div className="bg-white">
             {/* Modal Header */}
-            <div className="flex items-center px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div className="flex items-center space-x-2">
                 <UserPlus className="h-5 w-5 text-red-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Add Customer</h2>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  onClick={handleAddCustomer}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm rounded"
+                >
+                  Submit
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowAddModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             </div>
 
@@ -636,25 +672,6 @@ export default function MyCustomers() {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 resize-none"
                 />
-              </div>
-            </div>
-            
-            {/* Modal Footer with Submit Button */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-end space-x-3">
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-sm"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleAddCustomer}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm"
-                >
-                  Submit
-                </Button>
               </div>
             </div>
           </div>

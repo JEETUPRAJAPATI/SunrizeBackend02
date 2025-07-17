@@ -467,7 +467,32 @@ The system supports two database configurations:
 - All forms now provide smooth typing experience without React re-rendering interference
 - Enhanced form workflow with proper cancel handling and button state management
 
-**Current Status**: Complete ERP system with streamlined Sales module including resolved input focus issues, new Refund & Return functionality with success toast notifications, fully functional Role & Permission Management system, working sidebar dropdown navigation, simplified forms with essential fields only, enhanced dialog accessibility, and comprehensive Production module. All features include proper JWT authentication, Excel import/export capabilities, category management with subcategory support, role-based access control, secure token-based authentication, and improved form field management throughout the application.
+**January 17, 2025 - Complete "Indent" to "Order" Terminology Rename and Routing Fix**
+- Systematically renamed all "Indent" terminology to "Order" throughout the MyIndent component for better clarity
+- Updated sidebar navigation from "My Indent" to "My Orders" reflecting new terminology
+- Changed component function name from MyIndent to MyOrders for consistency
+- Updated all UI text, headers, form labels, and dialog titles from "indent" to "order"
+- Modified all variable names, function names, and state references from "indent" to "order"
+- Changed dummy data IDs from "IND-" to "ORD-" format for order identification
+- Updated button text from "Create Indent" to "Create Order" and "Edit Indent" to "Edit Order"
+- Modified table headers, stats cards, and filtering placeholders to use "order" terminology
+- Updated all form components including CreateOrderForm and EditOrderForm naming
+- Fixed routing issue: Updated both App.tsx and App.jsx routes from `/sales/my-indent` to `/sales/orders`
+- Fixed import statements in both App.tsx and App.jsx from MyIndent to MyOrders
+- Fixed navigation paths in Sidebar.jsx to match new routing structure
+- Synchronized all sales submodule routes (my-customers, my-deliveries, my-invoices, my-ledger)
+- Resolved 404 error for "My Orders" navigation link in both routing configurations
+- Enhanced user experience with consistent "order" terminology throughout the sales workflow
+
+**January 17, 2025 - Added Sales Dashboard as Sales Submodule**
+- Added "Sales Dashboard" as first item in Sales dropdown menu submodules
+- Positioned at the top of Sales submodules for easy access to sales metrics
+- Added routing support with /sales-dashboard path in App.jsx
+- Imported and connected SalesDashboard component to new route
+- Provided dedicated dashboard specifically for sales metrics and order summaries within Sales module
+- Enhanced Sales navigation with dashboard overview before detailed submodule access
+
+**Current Status**: Complete ERP system with streamlined Sales module including resolved input focus issues, new Refund & Return functionality with success toast notifications, fully functional Role & Permission Management system, working sidebar dropdown navigation, simplified forms with essential fields only, enhanced dialog accessibility, and comprehensive Production module. All "Indent" terminology has been renamed to "Order" for better clarity. All features include proper JWT authentication, Excel import/export capabilities, category management with subcategory support, role-based access control, secure token-based authentication, and improved form field management throughout the application.
 
 **January 16, 2025 - Complete Multiple Products Support for Refund & Return Module**
 - Implemented comprehensive multiple products functionality identical to MyIndent module structure
