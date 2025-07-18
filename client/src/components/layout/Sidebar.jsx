@@ -72,12 +72,11 @@ const menuItems = [
     module: 'sales',
     submodules: [
       { label: 'Sales Dashboard', path: '/sales-dashboard', feature: 'salesDashboard' },
-      { label: 'My Orders', path: '/sales/orders', feature: 'myIndent' },
+      { label: 'My Orders', path: '/sales/orders', feature: 'orders' },
       { label: 'My Customers', path: '/sales/my-customers', feature: 'myCustomers' },
       { label: 'My Deliveries', path: '/sales/my-deliveries', feature: 'myDeliveries' },
       { label: 'My Invoices', path: '/sales/my-invoices', feature: 'myInvoices' },
-      { label: 'My Ledger', path: '/sales/my-ledger', feature: 'myLedger' },
-      { label: 'Refund & Return', path: '/sales/refund-return', feature: 'refundReturn' }
+      { label: 'Refund/Damage', path: '/sales/refund-return', feature: 'refundReturn' }
     ]
   },
   {

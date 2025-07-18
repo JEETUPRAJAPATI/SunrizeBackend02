@@ -8,7 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import Orders from "@/pages/Orders";
+
 import Manufacturing from "@/pages/Manufacturing";
 import Dispatches from "@/pages/Dispatches";
 import Sales from "@/pages/Sales";
@@ -24,18 +24,14 @@ import MainLayout from "@/components/layout/MainLayout";
 import Profile from "@/pages/Profile";
 import Companies from "@/pages/Companies";
 import MyOrders from "@/pages/sales/MyIndent";
-import NewOrder from "@/pages/sales/NewOrder";
-import OrdersList from "@/pages/sales/OrdersList";
-import EditOrder from "@/pages/sales/EditOrder";
 import MyCustomers from "@/pages/sales/MyCustomers";
 import MyDeliveries from "@/pages/sales/MyDeliveries";
 import MyInvoices from "@/pages/sales/MyInvoices";
-import MyLedger from "@/pages/sales/MyLedger";
-import RefundReturn from "@/pages/sales/RefundReturn";
+
+import RefundDamage from "@/pages/sales/RefundDamage";
 import SalesDashboard from "@/pages/SalesDashboard";
 import NewProductionPage from "@/pages/NewProductionPage";
 import ProductionHistoryPage from "@/pages/ProductionHistoryPage";
-import CustomerList from "@/pages/CustomerList";
 function ProtectedRoute({ children, requiredRole = null }) {
   const { user, loading } = useAuth();
 
@@ -85,11 +81,7 @@ function Router() {
           <Dashboard />
         </ProtectedRoute>
       </Route>
-      <Route path="/orders">
-        <ProtectedRoute>
-          <Orders />
-        </ProtectedRoute>
-      </Route>
+
       <Route path="/manufacturing">
         <ProtectedRoute>
           <Manufacturing />
@@ -113,18 +105,7 @@ function Router() {
       {/* Sales Submodules - specific routes first */}
       <Route path="/sales/orders">
         <ProtectedRoute>
-          <OrdersList />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/sales/new-order">
-        <ProtectedRoute>
-          <NewOrder />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/sales/edit-order">
-        <ProtectedRoute>
-          <EditOrder />
+          <MyOrders />
         </ProtectedRoute>
       </Route>
       <Route path="/sales/my-customers">
@@ -142,14 +123,10 @@ function Router() {
           <MyInvoices />
         </ProtectedRoute>
       </Route>
-      <Route path="/sales/my-ledger">
-        <ProtectedRoute>
-          <MyLedger />
-        </ProtectedRoute>
-      </Route>
+
       <Route path="/sales/refund-return">
         <ProtectedRoute>
-          <RefundReturn />
+          <RefundDamage />
         </ProtectedRoute>
       </Route>
       
@@ -181,7 +158,6 @@ function Router() {
           <Customers />
         </ProtectedRoute>
       </Route>
-
       <Route path="/suppliers">
         <ProtectedRoute>
           <Suppliers />

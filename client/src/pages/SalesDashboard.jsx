@@ -89,6 +89,46 @@ const SalesDashboard = () => {
     }
   ];
 
+  // Recent invoices data
+  const recentInvoices = [
+    {
+      id: 'INV-2025-001',
+      customerName: 'ABC Manufacturing Ltd',
+      invoiceDate: '2025-01-07',
+      dueDate: '2025-02-06',
+      totalAmount: 147500,
+      status: 'Paid',
+      statusColor: 'green'
+    },
+    {
+      id: 'INV-2025-002',
+      customerName: 'XYZ Industries Corp',
+      invoiceDate: '2025-01-08',
+      dueDate: '2025-02-07',
+      totalAmount: 98750,
+      status: 'Partially Paid',
+      statusColor: 'yellow'
+    },
+    {
+      id: 'INV-2025-003',
+      customerName: 'PQR Steel Works',
+      invoiceDate: '2025-01-09',
+      dueDate: '2025-02-08',
+      totalAmount: 125000,
+      status: 'Pending',
+      statusColor: 'blue'
+    },
+    {
+      id: 'INV-2025-004',
+      customerName: 'LMN Auto Parts',
+      invoiceDate: '2025-01-08',
+      dueDate: '2025-02-07',
+      totalAmount: 87500,
+      status: 'Paid',
+      statusColor: 'green'
+    }
+  ];
+
   const getStatusBadgeVariant = (color) => {
     switch (color) {
       case 'green': return 'default';
@@ -123,12 +163,12 @@ const SalesDashboard = () => {
     setLocation('/sales/orders');
   };
 
-  const handleViewAllOrders = () => {
+  const handleViewAll = () => {
     setLocation('/sales/orders');
   };
 
-  const handleViewAll = () => {
-    setLocation('/sales/orders');
+  const handleViewAllInvoices = () => {
+    setLocation('/sales/my-invoices');
   };
 
   return (
@@ -261,6 +301,60 @@ const SalesDashboard = () => {
                     >
                       VIEW
                     </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Recent Invoices Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-purple-500" />
+              <CardTitle>Recent Invoices</CardTitle>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleViewAllInvoices}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View All
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentInvoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell className="font-medium">{invoice.id}</TableCell>
+                  <TableCell>{invoice.customerName}</TableCell>
+                  <TableCell>₹{invoice.totalAmount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getStatusBadgeVariant(invoice.statusColor)}
+                      className="flex items-center gap-1 w-fit"
+                    >
+                      {invoice.status === 'Paid' ? <CheckCircle className="h-3 w-3" /> :
+                       invoice.status === 'Pending' ? <Clock className="h-3 w-3" /> :
+                       invoice.status === 'Partially Paid' ? <AlertTriangle className="h-3 w-3" /> :
+                       <Package className="h-3 w-3" />}
+                      {invoice.status}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))}

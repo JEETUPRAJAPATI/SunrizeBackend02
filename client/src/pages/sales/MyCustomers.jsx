@@ -1,663 +1,1261 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { ActionButton, useActionPermissions } from '@/components/permissions/ActionButton';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserPlus, Search, Menu, MapPin, X } from 'lucide-react';
-import { DialogDescription } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Users,
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  Building,
+  Phone,
+  Mail,
+  MapPin,
+  RefreshCw,
+  TrendingUp,
+  CreditCard,
+  UserCheck
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Dummy customer data
+const dummyCustomers = [
+  {
+    id: 'C001',
+    name: 'ABC Manufacturing Ltd',
+    contactPerson: 'Rajesh Kumar',
+    phone: '+91 98765 43210',
+    email: 'rajesh@abcmfg.com',
+    address: '123 Industrial Area, Phase 1',
+    area: 'Industrial Zone A',
+    route: 'Route 1',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400001',
+    gst: '27ABCDE1234F1Z5',
+    category: 'Premium',
+    creditLimit: 500000,
+    outstandingAmount: 125000,
+    status: 'Active',
+    registrationDate: '2024-01-15',
+    lastOrderDate: '2025-01-05'
+  },
+  {
+    id: 'C002',
+    name: 'XYZ Industries Corp',
+    contactPerson: 'Priya Sharma',
+    phone: '+91 87654 32109',
+    email: 'priya@xyzind.com',
+    address: '456 Tech Park, Building B2',
+    area: 'Tech Park B',
+    route: 'Route 2',
+    city: 'Pune',
+    state: 'Maharashtra',
+    pincode: '411001',
+    gst: '27XYZAB5678G2W4',
+    category: 'Standard',
+    creditLimit: 300000,
+    outstandingAmount: 75000,
+    status: 'Active',
+    registrationDate: '2024-02-20',
+    lastOrderDate: '2025-01-03'
+  },
+  {
+    id: 'C003',
+    name: 'PQR Steel Works',
+    contactPerson: 'Amit Patel',
+    phone: '+91 76543 21098',
+    email: 'amit@pqrsteel.com',
+    address: '789 Steel Complex, Sector 5',
+    area: 'Industrial Sector 5',
+    route: 'Route 3',
+    city: 'Ahmedabad',
+    state: 'Gujarat',
+    pincode: '380001',
+    gst: '24PQRST9012H3Y6',
+    category: 'Premium',
+    creditLimit: 750000,
+    outstandingAmount: 200000,
+    status: 'Active',
+    registrationDate: '2024-03-10',
+    lastOrderDate: '2025-01-01'
+  },
+  {
+    id: 'C004',
+    name: 'LMN Auto Parts',
+    contactPerson: 'Sneha Reddy',
+    phone: '+91 65432 10987',
+    email: 'sneha@lmnauto.com',
+    address: '321 Auto Hub, Unit 12',
+    area: 'Auto Hub',
+    route: 'Route 1',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    pincode: '500001',
+    gst: '36LMNOP3456K1U8',
+    category: 'Standard',
+    creditLimit: 400000,
+    outstandingAmount: 150000,
+    status: 'Active',
+    registrationDate: '2024-04-05',
+    lastOrderDate: '2024-12-30'
+  },
+  {
+    id: 'C005',
+    name: 'RST Electronics',
+    contactPerson: 'Vikram Singh',
+    phone: '+91 54321 09876',
+    email: 'vikram@rstelectronics.com',
+    address: '654 Electronics Mall, Floor 3',
+    area: 'Electronics District',
+    route: 'Route 2',
+    city: 'Bangalore',
+    state: 'Karnataka',
+    pincode: '560001',
+    gst: '29RSTUV6789L2V9',
+    category: 'Basic',
+    creditLimit: 200000,
+    outstandingAmount: 45000,
+    status: 'Active',
+    registrationDate: '2024-05-12',
+    lastOrderDate: '2024-12-28'
+  },
+  {
+    id: 'C006',
+    name: 'DEF Textiles Ltd',
+    contactPerson: 'Kavya Nair',
+    phone: '+91 43210 98765',
+    email: 'kavya@deftextiles.com',
+    address: '987 Textile Park, Block C',
+    area: 'Textile Zone',
+    route: 'Route 3',
+    city: 'Coimbatore',
+    state: 'Tamil Nadu',
+    pincode: '641001',
+    gst: '33DEFGH7890M3X1',
+    category: 'Standard',
+    creditLimit: 350000,
+    outstandingAmount: 95000,
+    status: 'Active',
+    registrationDate: '2024-06-18',
+    lastOrderDate: '2024-12-29'
+  },
+  {
+    id: 'C007',
+    name: 'GHI Chemicals',
+    contactPerson: 'Rahul Joshi',
+    phone: '+91 32109 87654',
+    email: 'rahul@ghichem.com',
+    address: '147 Chemical Complex, Wing A',
+    area: 'Chemical Zone',
+    route: 'Route 1',
+    city: 'Vadodara',
+    state: 'Gujarat',
+    pincode: '390001',
+    gst: '24GHIJK8901N4Y2',
+    category: 'Premium',
+    creditLimit: 600000,
+    outstandingAmount: 180000,
+    status: 'Active',
+    registrationDate: '2024-07-25',
+    lastOrderDate: '2024-12-31'
+  },
+  {
+    id: 'C008',
+    name: 'JKL Food Processing',
+    contactPerson: 'Anita Gupta',
+    phone: '+91 21098 76543',
+    email: 'anita@jklfood.com',
+    address: '258 Food Park, Unit 8',
+    area: 'Food Processing Zone',
+    route: 'Route 2',
+    city: 'Indore',
+    state: 'Madhya Pradesh',
+    pincode: '452001',
+    gst: '23JKLMN9012O5Z3',
+    category: 'Standard',
+    creditLimit: 280000,
+    outstandingAmount: 65000,
+    status: 'Active',
+    registrationDate: '2024-08-30',
+    lastOrderDate: '2024-12-27'
+  },
+  {
+    id: 'C009',
+    name: 'MNO Pharmaceuticals',
+    contactPerson: 'Dr. Suresh Kumar',
+    phone: '+91 10987 65432',
+    email: 'suresh@mnopharma.com',
+    address: '369 Pharma City, Tower B',
+    area: 'Pharma District',
+    route: 'Route 3',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    pincode: '500038',
+    gst: '36MNOPQ0123P6A4',
+    category: 'Premium',
+    creditLimit: 550000,
+    outstandingAmount: 220000,
+    status: 'Inactive',
+    registrationDate: '2024-09-15',
+    lastOrderDate: '2024-12-25'
+  },
+  {
+    id: 'C010',
+    name: 'PQR Construction',
+    contactPerson: 'Meera Iyer',
+    phone: '+91 09876 54321',
+    email: 'meera@pqrconstruction.com',
+    address: '741 Construction Hub, Block 7',
+    area: 'Construction Zone',
+    route: 'Route 1',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    pincode: '600001',
+    gst: '33PQRST1234Q7B5',
+    category: 'Standard',
+    creditLimit: 450000,
+    outstandingAmount: 175000,
+    status: 'Active',
+    registrationDate: '2024-10-30',
+    lastOrderDate: '2024-12-26'
+  }
+];
 
 export default function MyCustomers() {
+  // Permission hooks
+  const permissions = useActionPermissions('sales', 'myCustomers');
+  
+  const [customers, setCustomers] = useState(dummyCustomers);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedColumn, setSelectedColumn] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [routeFilter, setRouteFilter] = useState('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Early return if no view permission
+  if (!permissions.canView) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Access Denied
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                You don't have permission to view My Customers module.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Form state - Updated to match new requirements
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerType: '',
-    status: '',
-    gstin: '',
-    contactName: '',
-    mobile: '',
-    email: '',
-    addressLine1: '',
+    name: '',
+    contactPerson: '',
+    phone: '',
+    email: '', // Not required anymore
+    address: '',
+    area: '',
     city: '',
     state: '',
-    country: 'India',
-    pin: '',
-    notes: ''
+    pincode: '',
+    gst: '', // Not required anymore
+    geoLocation: '', // New field added
+    category: 'Standard'
   });
 
-  // Customer data matching the reference images
-  const customers = [
-    {
-      id: 'D-401',
-      customerName: 'Sri Venkateswara Enterprises',
-      customerType: 'Distributor',
-      status: 'Active',
-      gstin: '22AAAAA0000A1Z5',
-      contactName: 'Manohar Byreddy',
-      mobile: '9395133107',
-      email: 'mbyreddy@gmail.com',
-      addressLine1: '8/2/15 Opp. Bus Station',
-      city: 'Renigunta',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '512586',
-      createdDate: '21/04/2025',
-      notes: 'Category notes show up here. An example of multi-line comments if needed.'
-    },
-    {
-      id: 'C-123',
-      customerName: 'Padmavathi Bakery',
-      customerType: 'Retailer',
-      status: 'Active',
-      gstin: '22BBBBB0000B1Z5',
-      contactName: 'Padmavathi Reddy',
-      mobile: '9876543210',
-      email: 'padmavathi@gmail.com',
-      addressLine1: 'Main Road, Near Temple',
-      city: 'Tirupati',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517501',
-      createdDate: '15/03/2025',
-      notes: 'Regular customer with good payment history.'
-    },
-    {
-      id: 'C-112',
-      customerName: 'Tirumala Tiffins',
-      customerType: 'Restaurant',
-      status: 'Active',
-      gstin: '22CCCCC0000C1Z5',
-      contactName: 'Venkatesh Kumar',
-      mobile: '9123456789',
-      email: 'tirumala@gmail.com',
-      addressLine1: 'Temple Street',
-      city: 'Tirumala',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517504',
-      createdDate: '10/02/2025',
-      notes: 'Bulk orders on weekends.'
-    },
-    {
-      id: 'B-206',
-      customerName: 'Sri Vidya Nikethan Canteen',
-      customerType: 'Institution',
-      status: 'Active',
-      gstin: '22DDDDD0000D1Z5',
-      contactName: 'Rajesh Sharma',
-      mobile: '9234567890',
-      email: 'canteen@svidya.edu.in',
-      addressLine1: 'College Campus',
-      city: 'Tirupati',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517502',
-      createdDate: '05/01/2025',
-      notes: 'Educational institution canteen.'
-    },
-    {
-      id: 'C-001',
-      customerName: 'Lorven Eatery',
-      customerType: 'Restaurant',
-      status: 'Inactive',
-      gstin: '22EEEEE0000E1Z5',
-      contactName: 'Suresh Babu',
-      mobile: '9345678901',
-      email: 'lorven@gmail.com',
-      addressLine1: 'Bus Stand Road',
-      city: 'Chandragiri',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517101',
-      createdDate: '20/12/2024',
-      notes: 'Payment issues - follow up required.'
-    },
-    {
-      id: 'S-273',
-      customerName: 'SV Food Court',
-      customerType: 'Food Court',
-      status: 'Active',
-      gstin: '22FFFFF0000F1Z5',
-      contactName: 'Prasad Rao',
-      mobile: '9456789012',
-      email: 'svfood@gmail.com',
-      addressLine1: 'Shopping Mall, 2nd Floor',
-      city: 'Tirupati',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517501',
-      createdDate: '18/11/2024',
-      notes: 'Monthly billing preferred.'
-    },
-    {
-      id: 'S-287',
-      customerName: 'Sri Renuka Sweets',
-      customerType: 'Sweet Shop',
-      status: 'Active',
-      gstin: '22GGGGG0000G1Z5',
-      contactName: 'Renuka Devi',
-      mobile: '9567890123',
-      email: 'renuka@gmail.com',
-      addressLine1: 'Gandhi Road',
-      city: 'Tirupati',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517501',
-      createdDate: '25/10/2024',
-      notes: 'Festival season bulk orders.'
-    },
-    {
-      id: 'C-107',
-      customerName: 'Saranya Bhawan',
-      customerType: 'Restaurant',
-      status: 'Active',
-      gstin: '22HHHHH0000H1Z5',
-      contactName: 'Saranya Reddy',
-      mobile: '9678901234',
-      email: 'saranya@gmail.com',
-      addressLine1: 'Railway Station Road',
-      city: 'Renigunta',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517520',
-      createdDate: '12/09/2024',
-      notes: 'Daily orders, good customer.'
-    },
-    {
-      id: 'D-413',
-      customerName: 'Raheem Kova Buns & More',
-      customerType: 'Bakery',
-      status: 'Active',
-      gstin: '22IIIII0000I1Z5',
-      contactName: 'Abdul Raheem',
-      mobile: '9789012345',
-      email: 'raheem@gmail.com',
-      addressLine1: 'Market Street',
-      city: 'Puttur',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517583',
-      createdDate: '08/08/2024',
-      notes: 'Specializes in traditional items.'
-    },
-    {
-      id: 'B-213',
-      customerName: 'Meeting Point 2 Eat',
-      customerType: 'Cafe',
-      status: 'Active',
-      gstin: '22JJJJJ0000J1Z5',
-      contactName: 'Vamsi Krishna',
-      mobile: '9890123456',
-      email: 'meetingpoint@gmail.com',
-      addressLine1: 'IT Park, Ground Floor',
-      city: 'Tirupati',
-      state: 'Andhra Pradesh',
-      country: 'India',
-      pin: '517507',
-      createdDate: '30/07/2024',
-      notes: 'Corporate cafe with regular orders.'
-    }
-  ];
+  // Get unique values for filters
+  const categories = [...new Set(customers.map(c => c.category))];
+  const routes = [...new Set(customers.map(c => c.route))];
 
   const filteredCustomers = customers.filter(customer => {
-    if (!searchTerm) return true;
-    
-    const searchField = selectedColumn === 'name' ? customer.customerName :
-                       selectedColumn === 'id' ? customer.id :
-                       selectedColumn === 'email' ? customer.email :
-                       selectedColumn === 'phone' ? customer.mobile :
-                       customer.customerName;
-    
-    return searchField.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone.includes(searchTerm) ||
+      customer.area.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || customer.category === categoryFilter;
+    const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
+    const matchesRoute = routeFilter === 'all' || customer.route === routeFilter;
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesRoute;
   });
 
-  const handleMoreClick = (customer) => {
-    setSelectedCustomer(customer);
+  const getCategoryVariant = (category) => {
+    switch (category) {
+      case 'Premium': return 'default';
+      case 'Standard': return 'secondary';
+      case 'Basic': return 'outline';
+      default: return 'outline';
+    }
   };
 
-  const handleAddCustomer = () => {
-    console.log('Adding customer:', formData);
-    setShowAddModal(false);
+  const getStatusVariant = (status) => {
+    return status === 'Active' ? 'default' : 'destructive';
+  };
+
+  const resetForm = () => {
     setFormData({
-      customerName: '',
-      customerType: '',
-      status: '',
-      gstin: '',
-      contactName: '',
-      mobile: '',
+      name: '',
+      contactPerson: '',
+      phone: '',
       email: '',
-      addressLine1: '',
+      address: '',
+      area: '',
       city: '',
       state: '',
-      country: 'India',
-      pin: '',
-      notes: ''
+      pincode: '',
+      gst: '',
+      geoLocation: '',
+      category: 'Standard'
     });
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-6">
-        {/* Customer Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">👤</span>
-              </div>
-              <h1 className="text-lg font-medium text-gray-900">Customers</h1>
+  const handleCreate = () => {
+    const newCustomer = {
+      id: `C${(customers.length + 1).toString().padStart(3, '0')}`,
+      ...formData,
+      status: 'Active', // Default status for new customers
+      outstandingAmount: 0,
+      registrationDate: new Date().toISOString().split('T')[0],
+      lastOrderDate: null
+    };
+    setCustomers([...customers, newCustomer]);
+    setIsCreateModalOpen(false);
+    resetForm();
+  };
+
+  const handleEdit = (customer) => {
+    setSelectedCustomer(customer);
+    setFormData({
+      name: customer.name,
+      contactPerson: customer.contactPerson,
+      phone: customer.phone,
+      email: customer.email || '',
+      address: customer.address,
+      area: customer.area,
+      city: customer.city,
+      state: customer.state,
+      pincode: customer.pincode,
+      gst: customer.gst || '',
+      geoLocation: customer.geoLocation || '',
+      category: customer.category,
+      status: customer.status
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = () => {
+    const updatedCustomers = customers.map(customer =>
+      customer.id === selectedCustomer.id
+        ? {
+            ...customer,
+            ...formData
+          }
+        : customer
+    );
+    setCustomers(updatedCustomers);
+    setIsEditModalOpen(false);
+    setSelectedCustomer(null);
+    resetForm();
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      setCustomers(customers.filter(customer => customer.id !== id));
+    }
+  };
+
+  const handleView = (customer) => {
+    setSelectedCustomer(customer);
+    setIsViewModalOpen(true);
+  };
+
+  // Create form with isolated state to fix input focus issue
+  const CreateCustomerForm = () => {
+    const [localFormData, setLocalFormData] = useState({
+      name: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      area: '',
+      city: '',
+      state: '',
+      pincode: '',
+      gst: '',
+      geoLocation: ''
+    });
+
+    const handleSubmit = () => {
+      if (!localFormData.name || !localFormData.contactPerson || !localFormData.phone) {
+        return;
+      }
+      
+      const newCustomer = {
+        id: `C${(customers.length + 1).toString().padStart(3, '0')}`,
+        ...localFormData,
+        status: 'Active',
+        category: 'Standard', // Default category
+        route: 'Route 1', // Default route
+        registrationDate: new Date().toISOString().split('T')[0],
+        lastOrderDate: ''
+      };
+      
+      setCustomers([...customers, newCustomer]);
+      setIsCreateModalOpen(false);
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Primary Details Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Primary Details</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Customer Name</Label>
+              <Input
+                id="name"
+                value={localFormData.name}
+                onChange={(e) => setLocalFormData({ ...localFormData, name: e.target.value })}
+                placeholder="Enter business name"
+                className="mt-1"
+              />
             </div>
-            <Button 
-              onClick={() => setShowAddModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 text-sm font-medium rounded-full"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Customer
+            <div>
+              <Label htmlFor="customerType" className="text-sm font-medium text-gray-700">Customer Type</Label>
+              <Select>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="wholesale">Wholesale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+              <Select>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="gst" className="text-sm font-medium text-gray-700">GSTIN</Label>
+              <Input
+                id="gst"
+                value={localFormData.gst}
+                onChange={(e) => setLocalFormData({ ...localFormData, gst: e.target.value })}
+                placeholder="22AAAAA0000A1Z5"
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Details Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Contact Details</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="contactPerson" className="text-sm font-medium text-gray-700">Contact Name</Label>
+              <Input
+                id="contactPerson"
+                value={localFormData.contactPerson}
+                onChange={(e) => setLocalFormData({ ...localFormData, contactPerson: e.target.value })}
+                placeholder="Enter Contact Name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Mobile</Label>
+              <Input
+                id="phone"
+                value={localFormData.phone}
+                onChange={(e) => setLocalFormData({ ...localFormData, phone: e.target.value })}
+                placeholder="9005861923"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={localFormData.email}
+                onChange={(e) => setLocalFormData({ ...localFormData, email: e.target.value })}
+                placeholder="youremail@domain.in"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="address" className="text-sm font-medium text-gray-700">Address Line 1</Label>
+              <Input
+                id="address"
+                value={localFormData.address}
+                onChange={(e) => setLocalFormData({ ...localFormData, address: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="city" className="text-sm font-medium text-gray-700">City</Label>
+              <Input
+                id="city"
+                value={localFormData.city}
+                onChange={(e) => setLocalFormData({ ...localFormData, city: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="state" className="text-sm font-medium text-gray-700">State</Label>
+              <Input
+                id="state"
+                value={localFormData.state}
+                onChange={(e) => setLocalFormData({ ...localFormData, state: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country</Label>
+              <Input
+                value="India"
+                disabled
+                className="mt-1 bg-gray-100"
+              />
+            </div>
+            <div>
+              <Label htmlFor="pincode" className="text-sm font-medium text-gray-700">PIN</Label>
+              <Input
+                id="pincode"
+                value={localFormData.pincode}
+                onChange={(e) => setLocalFormData({ ...localFormData, pincode: e.target.value })}
+                placeholder="512356"
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Notes</h3>
+          </div>
+          <Textarea
+            placeholder="Any added notes show up here. An example of multi-line comments if needed."
+            rows={3}
+            className="resize-none"
+          />
+        </div>
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsCreateModalOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={!localFormData.name || !localFormData.contactPerson || !localFormData.phone}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Submit
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Edit Customer Form Component
+  const EditCustomerForm = () => {
+    const [localFormData, setLocalFormData] = useState({
+      name: selectedCustomer?.name || '',
+      contactPerson: selectedCustomer?.contactPerson || '',
+      phone: selectedCustomer?.phone || '',
+      email: selectedCustomer?.email || '',
+      address: selectedCustomer?.address || '',
+      area: selectedCustomer?.area || '',
+      city: selectedCustomer?.city || '',
+      state: selectedCustomer?.state || '',
+      pincode: selectedCustomer?.pincode || '',
+      gst: selectedCustomer?.gst || '',
+      geoLocation: selectedCustomer?.geoLocation || ''
+    });
+
+    const handleSubmit = () => {
+      if (!localFormData.name || !localFormData.contactPerson || !localFormData.phone) {
+        return;
+      }
+      
+      const updatedCustomers = customers.map(customer => 
+        customer.id === selectedCustomer.id 
+          ? { ...customer, ...localFormData }
+          : customer
+      );
+      
+      setCustomers(updatedCustomers);
+      setIsEditModalOpen(false);
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Primary Details Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Primary Details</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-name" className="text-sm font-medium text-gray-700">Customer Name</Label>
+              <Input
+                id="edit-name"
+                value={localFormData.name}
+                onChange={(e) => setLocalFormData({ ...localFormData, name: e.target.value })}
+                placeholder="Enter business name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-customerType" className="text-sm font-medium text-gray-700">Customer Type</Label>
+              <Select>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="wholesale">Wholesale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-status" className="text-sm font-medium text-gray-700">Status</Label>
+              <Select>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-gst" className="text-sm font-medium text-gray-700">GSTIN</Label>
+              <Input
+                id="edit-gst"
+                value={localFormData.gst}
+                onChange={(e) => setLocalFormData({ ...localFormData, gst: e.target.value })}
+                placeholder="22AAAAA0000A1Z5"
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Details Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Contact Details</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-contactPerson" className="text-sm font-medium text-gray-700">Contact Name</Label>
+              <Input
+                id="edit-contactPerson"
+                value={localFormData.contactPerson}
+                onChange={(e) => setLocalFormData({ ...localFormData, contactPerson: e.target.value })}
+                placeholder="Enter Contact Name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone" className="text-sm font-medium text-gray-700">Mobile</Label>
+              <Input
+                id="edit-phone"
+                value={localFormData.phone}
+                onChange={(e) => setLocalFormData({ ...localFormData, phone: e.target.value })}
+                placeholder="9005861923"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email" className="text-sm font-medium text-gray-700">E-mail</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={localFormData.email}
+                onChange={(e) => setLocalFormData({ ...localFormData, email: e.target.value })}
+                placeholder="youremail@domain.in"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-address" className="text-sm font-medium text-gray-700">Address Line 1</Label>
+              <Input
+                id="edit-address"
+                value={localFormData.address}
+                onChange={(e) => setLocalFormData({ ...localFormData, address: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-city" className="text-sm font-medium text-gray-700">City</Label>
+              <Input
+                id="edit-city"
+                value={localFormData.city}
+                onChange={(e) => setLocalFormData({ ...localFormData, city: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-state" className="text-sm font-medium text-gray-700">State</Label>
+              <Input
+                id="edit-state"
+                value={localFormData.state}
+                onChange={(e) => setLocalFormData({ ...localFormData, state: e.target.value })}
+                placeholder="8/2/15 Opposite to Central Bus Station"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-country" className="text-sm font-medium text-gray-700">Country</Label>
+              <Input
+                value="India"
+                disabled
+                className="mt-1 bg-gray-100"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-pincode" className="text-sm font-medium text-gray-700">PIN</Label>
+              <Input
+                id="edit-pincode"
+                value={localFormData.pincode}
+                onChange={(e) => setLocalFormData({ ...localFormData, pincode: e.target.value })}
+                placeholder="512356"
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Notes</h3>
+          </div>
+          <Textarea
+            placeholder="Any added notes show up here. An example of multi-line comments if needed."
+            rows={3}
+            className="resize-none"
+          />
+        </div>
+        
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsEditModalOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={!localFormData.name || !localFormData.contactPerson || !localFormData.phone}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Submit
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Calculate stats
+  const stats = {
+    total: customers.length,
+    active: customers.filter(c => c.status === 'Active').length,
+    premium: customers.filter(c => c.category === 'Premium').length
+  };
+
+  return (
+    <div className="px-2 py-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
+      {/* Header */}
+      <div className="bg-green-600 text-white px-3 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-md mx-0 sm:mx-0">
+        {/* Mobile Layout */}
+        <div className="flex sm:hidden items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">My Customers</h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            {permissions.canAdd && (
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="bg-white text-green-600 hover:bg-green-50 text-sm px-3 py-2">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto" key="create-customer-modal">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg sm:text-xl">Create New Customer</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details to add a new customer.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreateCustomerForm />
+                </DialogContent>
+              </Dialog>
+            )}
+            <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2">
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>
+        
+        {/* Desktop Layout */}
+        <div className="hidden sm:flex sm:items-center sm:justify-between">
+          <div className="flex items-center space-x-3">
+            <Users className="h-6 w-6" />
+            <h1 className="text-xl font-semibold">My Customers</h1>
+            <span className="hidden lg:inline text-green-100 text-sm">Manage customer relationships</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            {permissions.canAdd && (
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="bg-white text-green-600 hover:bg-green-50 text-sm px-3 py-2">
+                    <Plus className="h-4 w-4 mr-2" />
+                    <span>Create Customer</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto" key="create-customer-modal-desktop">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg sm:text-xl">Create New Customer</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details to add a new customer.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreateCustomerForm />
+                </DialogContent>
+              </Dialog>
+            )}
+            <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              <span>Refresh</span>
+            </Button>
+          </div>
+        </div>
+      </div>
 
-        {/* Search Section */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-4 py-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="w-full sm:w-1/2">
-                <label className="block text-sm text-gray-600 mb-2">
-                  Select Search Column
-                </label>
-                <Select value={selectedColumn} onValueChange={setSelectedColumn}>
-                  <SelectTrigger className="w-full h-10 border-gray-300">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Customer Name</SelectItem>
-                    <SelectItem value="id">Customer ID</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-full sm:w-1/2">
-                <label className="block text-sm text-gray-600 mb-2">
-                  Search
-                </label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-10 pr-10 border-gray-300"
-                  />
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 px-0 sm:px-0">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total Customers</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</p>
+            </div>
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <Users className="h-3 w-3 sm:h-8 sm:w-8 text-gray-500" />
             </div>
           </div>
         </div>
-
-        {/* Customer List */}
-        <div className="bg-white">
-          {/* Table Header */}
-          <div className="border-b border-gray-200">
-            <div className="grid grid-cols-4 gap-4 px-4 py-3">
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUS #</div>
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">CUSTOMER NAME</div>
-              <div className="text-sm font-medium text-gray-600 uppercase tracking-wide">STATUS</div>
-              <div></div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Active</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.active}</p>
+            </div>
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <UserCheck className="h-3 w-3 sm:h-8 sm:w-8 text-gray-500" />
             </div>
           </div>
-
-          {/* Customer Rows */}
-          {filteredCustomers.map((customer) => (
-            <div key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <div className="grid grid-cols-4 gap-4 px-4 py-4 items-center">
-                <div className="text-sm font-medium text-gray-900">
-                  {customer.id}
-                </div>
-                <div className="text-sm text-gray-900">
-                  {customer.customerName}
-                </div>
-                <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${
-                    customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                  }`}></div>
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    variant="ghost"
-                    onClick={() => handleMoreClick(customer)}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium uppercase p-0 h-auto"
-                  >
-                    MORE
-                  </Button>
-                </div>
-              </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Premium</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.premium}</p>
             </div>
-          ))}
-
-          {/* Pagination */}
-          <div className="border-t border-gray-200">
-            <div className="flex items-center justify-center py-4">
-              <div className="text-sm text-gray-600">
-                Showing 1 - 10 of 10
-              </div>
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <TrendingUp className="h-3 w-3 sm:h-8 sm:w-8 text-gray-500" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Customer Details Modal */}
-      <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
-        <DialogContent className="max-w-sm p-0 max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Customer Details</DialogTitle>
-          <DialogDescription className="sr-only">View customer information and details</DialogDescription>
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6 mx-0 sm:mx-0">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search customers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6 mx-0 sm:mx-0">
+        <h3 className="text-lg font-medium mb-3 sm:mb-4 px-0 sm:px-0">Customer List</h3>
+        
+        {/* Mobile Card View */}
+        <div className="block sm:hidden">
+          {/* Mobile Table Header */}
+          <div className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-t-lg border-b border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-400">
+            <span className="flex-1">CUSTOMER</span>
+            <span className="w-20 text-center">STATUS</span>
+            <span className="w-24 text-center">ACTIONS</span>
+          </div>
+          
+          {/* Mobile Cards */}
+          <div className="space-y-0 border border-gray-200 dark:border-gray-700 border-t-0 rounded-b-lg overflow-hidden">
+            {filteredCustomers.map((customer, index) => (
+              <div key={customer.id} className={`p-2 ${index !== filteredCustomers.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''} bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 mb-1">
+                      {customer.name}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      {customer.contactPerson} • {customer.phone}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {customer.city}, {customer.state}
+                    </div>
+                  </div>
+                  <div className="w-20 flex justify-center">
+                    <Badge 
+                      variant={customer.status === 'Active' ? 'default' : 'destructive'}
+                      className="text-xs px-2 py-1"
+                    >
+                      {customer.status}
+                    </Badge>
+                  </div>
+                  <div className="w-24 flex justify-center space-x-1">
+                    {permissions.canView && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 hover:bg-blue-100 hover:text-blue-600"
+                        onClick={() => handleView(customer)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {permissions.canEdit && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 hover:bg-green-100 hover:text-green-600"
+                        onClick={() => handleEdit(customer)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {permissions.canDelete && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600"
+                        onClick={() => handleDelete(customer.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  {(permissions.canView || permissions.canEdit || permissions.canDelete) && (
+                    <TableHead className="text-center">Actions</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map((customer) => (
+                  <TableRow key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{customer.name}</div>
+                        <div className="text-sm text-gray-500">{customer.id}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{customer.contactPerson}</div>
+                        <div className="text-sm text-gray-500 flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {customer.phone}
+                        </div>
+                        <div className="text-sm text-gray-500 flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {customer.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{customer.city}, {customer.state}</div>
+                        <div className="text-sm text-gray-500">{customer.area}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(customer.status)}>
+                        {customer.status}
+                      </Badge>
+                    </TableCell>
+                    {(permissions.canView || permissions.canEdit || permissions.canDelete) && (
+                      <TableCell className="text-center">
+                        <div className="flex justify-center space-x-1">
+                          {permissions.canView && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 hover:bg-gray-100 hover:text-gray-600"
+                              onClick={() => handleView(customer)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {permissions.canEdit && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 hover:bg-gray-100 hover:text-gray-600"
+                              onClick={() => handleEdit(customer)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {permissions.canDelete && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 hover:bg-gray-100 hover:text-gray-600"
+                              onClick={() => handleDelete(customer.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Customer - {selectedCustomer?.name}</DialogTitle>
+            <DialogDescription>
+              Update customer information and business details.
+            </DialogDescription>
+          </DialogHeader>
+          <EditCustomerForm />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
+          <DialogHeader>
+            <DialogTitle>Customer Details</DialogTitle>
+            <DialogDescription>
+              View complete customer information and contact details.
+            </DialogDescription>
+          </DialogHeader>
           {selectedCustomer && (
-            <div className="bg-white">
-              {/* Modal Header - Customer Row Style */}
-              <div className="border-b border-gray-100">
-                <div className="grid grid-cols-3 gap-4 px-4 py-4 items-center">
-                  <div className="text-sm font-medium text-gray-900">
-                    {selectedCustomer.id}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Primary Details Section */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">Primary Details</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Customer Name</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.name}</p>
                   </div>
-                  <div className="text-sm text-gray-900">
-                    {selectedCustomer.customerName}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Category</Label>
+                    <div className="mt-1">
+                      <Badge variant={getCategoryVariant(selectedCustomer.category)}>
+                        {selectedCustomer.category}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                      selectedCustomer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Status</Label>
+                    <div className="mt-1">
+                      <Badge variant={getStatusVariant(selectedCustomer.status)}>
+                        {selectedCustomer.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">GST Number</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.gst || 'N/A'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Customer Details - Exactly as shown in screenshot */}
-              <div className="px-4 py-4 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
+              {/* Contact Details Section */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">Contact Details</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <div className="text-xs text-gray-600 mb-1">Customer Type</div>
-                    <div className="text-sm font-medium text-gray-900">{selectedCustomer.customerType}</div>
+                    <Label className="text-sm font-medium text-gray-500">Contact Person</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.contactPerson}</p>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-600 mb-1">Account Status</div>
-                    <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-2 ${
-                        selectedCustomer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-                      }`}></div>
-                      <div className="text-sm text-gray-900">{selectedCustomer.status}</div>
-                    </div>
+                    <Label className="text-sm font-medium text-gray-500">Mobile</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.phone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Email</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Area</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.area}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="text-sm font-medium text-gray-500">Address</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.address}</p>
+                    <p className="text-sm text-gray-600">{selectedCustomer.city}, {selectedCustomer.state} - {selectedCustomer.pincode}</p>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">Created Date</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.createdDate}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">GSTIN</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.gstin}</div>
-                  </div>
+              {/* Additional Information */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">Additional Information</h3>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <div className="text-xs text-gray-600 mb-1">Contact Name</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.contactName}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">E-mail</div>
-                    <div className="text-sm text-red-600">{selectedCustomer.email}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">Mobile</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.mobile}</div>
+                    <Label className="text-sm font-medium text-gray-500">Registration Date</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.registrationDate}</p>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-600 mb-1">Address</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.addressLine1}</div>
+                    <Label className="text-sm font-medium text-gray-500">Last Order Date</Label>
+                    <p className="text-sm font-semibold text-gray-900">{selectedCustomer.lastOrderDate || 'No orders yet'}</p>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">City</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.city}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">State</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.state}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">PIN</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.pin}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">Country</div>
-                    <div className="text-sm text-gray-900">{selectedCustomer.country}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-gray-600 mb-1">Google Pin</div>
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 text-red-600 mr-1" />
-                    <span className="text-sm text-red-600 underline cursor-pointer">Google Map Link</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-gray-600 mb-1">Category Note</div>
-                  <div className="text-sm text-gray-900">{selectedCustomer.notes}</div>
                 </div>
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Customer Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md p-0 max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Add Customer</DialogTitle>
-          <DialogDescription className="sr-only">Add a new customer to the system</DialogDescription>
-          <div className="bg-white">
-            {/* Modal Header */}
-            <div className="flex items-center px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center space-x-2">
-                <UserPlus className="h-5 w-5 text-red-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Add Customer</h2>
-              </div>
-            </div>
-
-            {/* Form Content */}
-            <div className="px-6 py-4 space-y-6">
-              {/* Primary Details */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-4">
-                  ▼ Primary Details
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Customer Name</label>
-                    <Input
-                      type="text"
-                      placeholder="Enter business name"
-                      value={formData.customerName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Customer Type</label>
-                    <Select value={formData.customerType} onValueChange={(value) => setFormData(prev => ({ ...prev, customerType: value }))}>
-                      <SelectTrigger className="h-10 border-gray-300">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="distributor">Distributor</SelectItem>
-                        <SelectItem value="retailer">Retailer</SelectItem>
-                        <SelectItem value="restaurant">Restaurant</SelectItem>
-                        <SelectItem value="institution">Institution</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Status</label>
-                    <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                      <SelectTrigger className="h-10 border-gray-300">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">GSTIN</label>
-                    <Input
-                      type="text"
-                      placeholder="22AAAAA0000A1Z5"
-                      value={formData.gstin}
-                      onChange={(e) => setFormData(prev => ({ ...prev, gstin: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Details */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-4">
-                  ▼ Contact Details
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Contact Name</label>
-                    <Input
-                      type="text"
-                      placeholder="Enter Contact Name"
-                      value={formData.contactName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Mobile</label>
-                    <Input
-                      type="tel"
-                      placeholder="9005861923"
-                      value={formData.mobile}
-                      onChange={(e) => setFormData(prev => ({ ...prev, mobile: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">E-mail</label>
-                    <Input
-                      type="email"
-                      placeholder="youremail@domain.in"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Address Line 1</label>
-                    <Input
-                      type="text"
-                      placeholder="8/2/15 Opposite to Central Bus Station"
-                      value={formData.addressLine1}
-                      onChange={(e) => setFormData(prev => ({ ...prev, addressLine1: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">City</label>
-                    <Input
-                      type="text"
-                      placeholder="8/2/15 Opposite to Central Bus Station"
-                      value={formData.city}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">State</label>
-                    <Input
-                      type="text"
-                      placeholder="8/2/15 Opposite to Central Bus Station"
-                      value={formData.state}
-                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                      className="h-10 border-gray-300"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Country</label>
-                      <Input
-                        type="text"
-                        placeholder="India"
-                        value={formData.country}
-                        onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                        className="h-10 border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">PIN</label>
-                      <Input
-                        type="text"
-                        placeholder="512356"
-                        value={formData.pin}
-                        onChange={(e) => setFormData(prev => ({ ...prev, pin: e.target.value }))}
-                        className="h-10 border-gray-300"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Notes</label>
-                <textarea
-                  placeholder="Any added notes show up here. An example of multi-line comments if needed."
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 resize-none"
-                />
-              </div>
-            </div>
-            
-            {/* Modal Footer with Submit Button */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-end space-x-3">
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-sm"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleAddCustomer}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm"
-                >
-                  Submit
-                </Button>
-              </div>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>

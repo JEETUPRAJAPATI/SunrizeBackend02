@@ -180,7 +180,7 @@ export default function Dashboard() {
         <MetricsCard
           title="Revenue"
           value={
-            isLoading ? "..." : `₹${(metrics.revenue || 0).toLocaleString()}`
+            isLoading ? "..." : `$${(metrics.revenue || 0).toLocaleString()}`
           }
           change={
             isLoading ? "" : `${metrics.revenueGrowth || 0}% this quarter`
