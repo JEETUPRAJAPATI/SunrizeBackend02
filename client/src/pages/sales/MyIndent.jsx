@@ -35,8 +35,10 @@ import {
 const MyOrders = () => {
   const { hasFeatureAccess, canPerformAction } = usePermissions();
   
-  // Check if user has access to myIndent feature
-  if (!hasFeatureAccess('sales', 'myIndent', 'view')) {
+  // Check if user has access to orders feature (check sales.orders, sales.myIndent, and orders.indent)
+  const hasOrdersAccess = hasFeatureAccess('sales', 'orders', 'view') || hasFeatureAccess('sales', 'myIndent', 'view') || hasFeatureAccess('orders', 'indent', 'view');
+  
+  if (!hasOrdersAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -967,23 +969,14 @@ const MyOrders = () => {
             <h1 className="text-lg font-semibold">My Orders</h1>
           </div>
           <div className="flex items-center space-x-2">
-            {canPerformAction('sales', 'myIndent', 'add') && (
-              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto" key="create-indent-modal">
-                  <DialogHeader>
-                    <DialogTitle className="text-lg sm:text-xl">Create New Order</DialogTitle>
-                    <DialogDescription>
-                      Fill in the details to create a new production order.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateOrderForm />
-                </DialogContent>
-              </Dialog>
+            {(canPerformAction('sales', 'orders', 'add') || canPerformAction('sales', 'myIndent', 'add') || canPerformAction('orders', 'indent', 'add')) && (
+              <Button 
+                variant="secondary" 
+                className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             )}
             <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2">
               <RefreshCw className="h-4 w-4" />
@@ -999,24 +992,15 @@ const MyOrders = () => {
             <span className="hidden lg:inline text-blue-100 text-sm">Manage and track your sales orders</span>
           </div>
           <div className="flex items-center space-x-3">
-            {canPerformAction('sales', 'myIndent', 'add') && (
-              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2">
-                    <Plus className="h-4 w-4 mr-2" />
-                    <span>Create Order</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto" key="create-indent-modal-desktop">
-                  <DialogHeader>
-                    <DialogTitle className="text-lg sm:text-xl">Create New Order</DialogTitle>
-                    <DialogDescription>
-                      Fill in the details to create a new production order.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateOrderForm />
-                </DialogContent>
-              </Dialog>
+            {(canPerformAction('sales', 'orders', 'add') || canPerformAction('sales', 'myIndent', 'add') || canPerformAction('orders', 'indent', 'add')) && (
+              <Button 
+                variant="secondary" 
+                className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                <span>Create Order</span>
+              </Button>
             )}
             <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2">
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -1155,7 +1139,7 @@ const MyOrders = () => {
                     >
                       <Eye className="h-3 w-3" />
                     </Button>
-                    {canPerformAction('sales', 'myIndent', 'edit') && (
+                    {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -1165,7 +1149,7 @@ const MyOrders = () => {
                         <Edit className="h-3 w-3" />
                       </Button>
                     )}
-                    {canPerformAction('sales', 'myIndent', 'delete') && (
+                    {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -1192,7 +1176,7 @@ const MyOrders = () => {
                 <TableHead className="min-w-[120px]">Date</TableHead>
                 <TableHead className="min-w-[100px]">Status</TableHead>
                 <TableHead className="min-w-[80px]">Qty</TableHead>
-                {(canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('sales', 'myIndent', 'delete')) && (
+                {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit') || canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                   <TableHead className="text-right min-w-[120px]">Actions</TableHead>
                 )}
               </TableRow>
@@ -1212,7 +1196,7 @@ const MyOrders = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{order.totalQuantity}</TableCell>
-                  {(canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('sales', 'myIndent', 'delete')) && (
+                  {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit') || canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button 
@@ -1223,7 +1207,7 @@ const MyOrders = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {canPerformAction('sales', 'myIndent', 'edit') && (
+                        {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -1233,7 +1217,7 @@ const MyOrders = () => {
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
-                        {canPerformAction('sales', 'myIndent', 'delete') && (
+                        {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -1480,6 +1464,19 @@ const MyOrders = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Order Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">Create New Order</DialogTitle>
+            <DialogDescription>
+              Fill in the details to create a new production order.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateOrderForm />
         </DialogContent>
       </Dialog>
     </div>

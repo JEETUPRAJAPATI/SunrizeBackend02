@@ -76,11 +76,11 @@ const MODULES = [
     label: 'Sales',
     features: [
       { key: 'salesDashboard', label: 'Sales Dashboard' },
-      { key: 'orders', label: 'Orders' },
+      { key: 'orders', label: 'My Orders' },
       { key: 'myCustomers', label: 'My Customers' },
-      { key: 'myDeliveries', label: 'My Deliveries' },
-      { key: 'myInvoices', label: 'My Invoices' },
-      { key: 'refundReturn', label: 'Refund & Return' }
+      { key: 'myDeliveries', label: 'My Dispatches' },
+      { key: 'myInvoices', label: 'My Payments' },
+      { key: 'refundReturn', label: 'Return/Damage' }
     ]
   },
   {
@@ -411,12 +411,12 @@ export default function RolePermissionManagement() {
             name: 'sales',
             dashboard: true,
             features: [
-              { key: 'salesDashboard', view: true, add: false, edit: false, delete: false },
-              { key: 'orders', view: true, add: true, edit: true, delete: true },
-              { key: 'myCustomers', view: true, add: true, edit: true, delete: true },
-              { key: 'myDeliveries', view: true, add: false, edit: true, delete: true },
-              { key: 'myInvoices', view: true, add: false, edit: true, delete: true },
-              { key: 'refundReturn', view: true, add: true, edit: true, delete: true }
+              { key: 'salesDashboard', view: true, add: true, edit: true, delete: true, alter: true },
+              { key: 'orders', view: true, add: true, edit: true, delete: true, alter: true },
+              { key: 'myCustomers', view: true, add: true, edit: true, delete: true, alter: true },
+              { key: 'myDeliveries', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'myInvoices', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'refundReturn', view: true, add: true, edit: true, delete: true, alter: true }
             ]
           }
         ];

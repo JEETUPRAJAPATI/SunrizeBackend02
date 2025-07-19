@@ -74,9 +74,9 @@ const menuItems = [
       { label: 'Sales Dashboard', path: '/sales-dashboard', feature: 'salesDashboard' },
       { label: 'My Orders', path: '/sales/orders', feature: 'orders' },
       { label: 'My Customers', path: '/sales/my-customers', feature: 'myCustomers' },
-      { label: 'My Deliveries', path: '/sales/my-deliveries', feature: 'myDeliveries' },
-      { label: 'My Invoices', path: '/sales/my-invoices', feature: 'myInvoices' },
-      { label: 'Refund/Damage', path: '/sales/refund-return', feature: 'refundReturn' }
+      { label: 'My Dispatches', path: '/sales/my-deliveries', feature: 'myDeliveries' },
+      { label: 'My Payments', path: '/sales/my-invoices', feature: 'myInvoices' },
+      { label: 'Return/Damage', path: '/sales/refund-return', feature: 'refundReturn' }
     ]
   },
   {
@@ -407,7 +407,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     </Button>
                   </Link>
                   
-                  {hasModuleAccess('Settings') && (
+                  {user?.role === 'Super User' && (
                     <Link href="/settings">
                       <Button
                         variant={location === '/settings' ? "default" : "ghost"}

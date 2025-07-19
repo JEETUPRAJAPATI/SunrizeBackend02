@@ -269,20 +269,12 @@ const createSeedUsers = async () => {
               name: 'sales',
               dashboard: true,
               features: [
-                { key: 'myIndent', view: true, add: true, edit: false, delete: false, alter: false },
-                { key: 'myCustomers', view: true, add: true, edit: false, delete: false, alter: false },
+                { key: 'salesDashboard', view: true, add: true, edit: true, delete: true, alter: true },
+                { key: 'orders', view: true, add: true, edit: true, delete: true, alter: true },
+                { key: 'myCustomers', view: true, add: true, edit: true, delete: true, alter: true },
                 { key: 'myDeliveries', view: true, add: false, edit: false, delete: false, alter: false },
                 { key: 'myInvoices', view: true, add: false, edit: false, delete: false, alter: false },
-                { key: 'myLedger', view: true, add: false, edit: false, delete: false, alter: false },
-                { key: 'refundReturn', view: true, add: true, edit: true, delete: false, alter: false }
-              ]
-            },
-            {
-              name: 'orders',
-              dashboard: true,
-              features: [
-                { key: 'indent', view: true, add: false, edit: true, delete: false, alter: false },
-                { key: 'orderReport', view: true, add: false, edit: false, delete: false, alter: false }
+                { key: 'refundReturn', view: true, add: true, edit: true, delete: true, alter: true }
               ]
             }
           ]

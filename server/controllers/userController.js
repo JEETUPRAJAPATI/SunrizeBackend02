@@ -1,6 +1,6 @@
 import User from '../models/User.js';
 import { USER_ROLES } from '../../shared/schema.js';
-import { getUserModules } from '../utils/permissions.js';
+
 import bcrypt from 'bcryptjs';
 
 export const getUsers = async (req, res) => {

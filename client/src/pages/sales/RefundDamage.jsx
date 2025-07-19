@@ -121,43 +121,51 @@ const customers = Object.keys(customerOrderHistory);
 const CreateEntryForm = ({ onClose, editData = null }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    type: editData?.type || 'refund',
     customer: editData?.customerName || '',
-    invoiceNumber: editData?.invoiceNumber || '',
     date: editData?.date || new Date().toISOString().split('T')[0],
     reason: editData?.reason || '',
-    remarks: editData?.remarks || '',
-    selectedProducts: editData?.products || []
+    products: []
   });
 
-  const [customerOrders, setCustomerOrders] = useState([]);
-  const [returnQuantities, setReturnQuantities] = useState({});
+  const [productQuantities, setProductQuantities] = useState({});
+  const [expandedBrands, setExpandedBrands] = useState({});
 
-  // Load customer orders when customer is selected
-  React.useEffect(() => {
-    if (formData.customer && customerOrderHistory[formData.customer]) {
-      setCustomerOrders(customerOrderHistory[formData.customer]);
-      // Initialize return quantities
-      const initialQuantities = {};
-      customerOrderHistory[formData.customer].forEach((order, index) => {
-        initialQuantities[index] = 0;
-      });
-      setReturnQuantities(initialQuantities);
-    } else {
-      setCustomerOrders([]);
-      setReturnQuantities({});
-    }
-  }, [formData.customer]);
+  // Bakery products organized by brand
+  const bakeryProducts = [
+    { id: 1, brand: 'Britannia', name: 'Marie Gold Biscuits', price: 15, image: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=150&h=150&fit=crop' },
+    { id: 2, brand: 'Britannia', name: 'Good Day Cashew Cookies', price: 25, image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=150&h=150&fit=crop' },
+    { id: 3, brand: 'Britannia', name: 'Milk Bikis Biscuits', price: 20, image: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=150&h=150&fit=crop' },
+    { id: 4, brand: 'Oreo', name: 'Oreo Original Cookies', price: 40, image: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=150&h=150&fit=crop' },
+    { id: 5, brand: 'Oreo', name: 'Oreo Chocolate Cream', price: 45, image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=150&h=150&fit=crop' },
+    { id: 6, brand: 'McVities', name: 'Digestive Original', price: 35, image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=150&h=150&fit=crop' },
+    { id: 7, brand: 'McVities', name: 'Dark Chocolate Digestive', price: 42, image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=150&h=150&fit=crop' }
+  ];
 
-  // Initialize quantities for edit mode
+
+
+  // Sample customers
+  const customers = [
+    'ABC Corporation',
+    'XYZ Bakery',  
+    'Fresh Foods Ltd',
+    'City Restaurant',
+    'Hotel Paradise',
+    'Corner Cafe',
+    'Sweet Treats',
+    'Daily Bread Co'
+  ];
+
+  // Initialize data for edit mode
   React.useEffect(() => {
     if (editData?.products) {
       const quantities = {};
       editData.products.forEach(product => {
-        const key = `${product.brand}-${product.product}`;
-        quantities[key] = product.quantity;
+        const bakeryProduct = bakeryProducts.find(p => p.name === product.product && p.brand === product.brand);
+        if (bakeryProduct) {
+          quantities[bakeryProduct.id] = product.returnQuantity || 0;
+        }
       });
-      setReturnQuantities(quantities);
+      setProductQuantities(quantities);
     }
   }, [editData]);
 
@@ -165,47 +173,52 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleReturnQuantityChange = (orderIndex, quantity) => {
-    const parsedQuantity = parseInt(quantity) || 0;
-    const order = customerOrders[orderIndex];
-    
-    // Don't allow return quantity to exceed original order quantity
-    const finalQuantity = Math.min(parsedQuantity, order.quantity);
-    
-    setReturnQuantities(prev => ({
+
+
+  const handleQuantityChange = (productId, value) => {
+    const numValue = parseInt(value) || 0;
+    setProductQuantities(prev => ({
       ...prev,
-      [orderIndex]: finalQuantity
+      [productId]: Math.max(0, numValue)
     }));
   };
 
-  const calculateTotal = () => {
-    return customerOrders.reduce((total, order, index) => {
-      const returnQty = returnQuantities[index] || 0;
-      return total + (returnQty * order.price);
-    }, 0);
+  const toggleBrand = (brand) => {
+    setExpandedBrands(prev => ({
+      ...prev,
+      [brand]: !prev[brand]
+    }));
+  };
+
+
+
+  const getSelectedProducts = () => {
+    return bakeryProducts
+      .filter(product => (productQuantities[product.id] || 0) > 0)
+      .map(product => ({
+        ...product,
+        returnQuantity: productQuantities[product.id]
+      }));
   };
 
   const getSelectedUnits = () => {
-    return Object.values(returnQuantities).reduce((total, quantity) => total + (quantity || 0), 0);
+    return Object.values(productQuantities).reduce((total, quantity) => total + (quantity || 0), 0);
   };
 
-  const getSelectedProducts = () => {
-    return customerOrders
-      .map((order, index) => ({
-        ...order,
-        returnQuantity: returnQuantities[index] || 0
-      }))
-      .filter(order => order.returnQuantity > 0);
+  const calculateTotal = () => {
+    return getSelectedProducts().reduce((total, product) => {
+      return total + (product.returnQuantity * product.price);
+    }, 0);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.customer || !formData.invoiceNumber) {
+    if (!formData.customer) {
       toast({
         title: "Validation Error",
-        description: "Please fill in customer and invoice number",
+        description: "Please select a customer",
         variant: "destructive"
       });
       return;
@@ -221,22 +234,28 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
       return;
     }
 
+    // Check if reason is provided
+    if (!formData.reason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for the return",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Generate or use existing entry ID
-    const entryId = editData?.id || `${formData.type.toUpperCase().substring(0,2)}${String(Date.now()).slice(-4)}`;
+    const entryId = editData?.id || `RT${String(Date.now()).slice(-4)}`;
     
     const entry = {
       id: entryId,
-      type: formData.type,
+      type: 'return',
       customerName: formData.customer,
-      invoiceNumber: formData.invoiceNumber,
       date: formData.date,
       reason: formData.reason,
-      remarks: formData.remarks,
       products: selectedProducts.map(p => ({
-        orderId: p.orderId,
         brand: p.brand,
-        product: p.product,
-        originalQuantity: p.quantity,
+        product: p.name,
         returnQuantity: p.returnQuantity,
         unitPrice: p.price
       })),
@@ -262,7 +281,7 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
 
     toast({
       title: "Success",
-      description: `${formData.type === 'refund' ? 'Refund' : 'Damage'} entry ${editData ? 'updated' : 'created'} successfully`,
+      description: `Return entry ${editData ? 'updated' : 'created'} successfully with ${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}`,
     });
 
     onClose();
@@ -270,238 +289,159 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Basic Information - Mobile Optimized */}
-      <div className="space-y-3">
-        <div>
-          <Label className="text-sm font-medium">Customer *</Label>
-          <Select value={formData.customer} onValueChange={(value) => handleInputChange('customer', value)}>
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer} value={customer}>{customer}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-4">
 
-        <div>
-          <Label className="text-sm font-medium">Invoice Number *</Label>
-          <Input
-            placeholder="Enter invoice number"
-            value={formData.invoiceNumber}
-            onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
-            className="h-11"
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-sm font-medium">Type</Label>
-            <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-              <SelectTrigger className="h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="refund">Refund</SelectItem>
-                <SelectItem value="damage">Damage</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Date</Label>
-            <Input
-              type="date"
-              value={formData.date}
-              onChange={(e) => handleInputChange('date', e.target.value)}
-              className="h-11"
-            />
-          </div>
-        </div>
+      {/* Customer Selection */}
+      <div>
+        <Label className="text-sm font-medium">Customer *</Label>
+        <Select value={formData.customer} onValueChange={(value) => handleInputChange('customer', value)}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Select customer" />
+          </SelectTrigger>
+          <SelectContent>
+            {customers.map((customer) => (
+              <SelectItem key={customer} value={customer}>{customer}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Customer Orders Display - Mobile Optimized */}
-      {formData.customer && customerOrders.length > 0 && (
-        <Card className="shadow-sm">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 px-4 py-3">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center">
-                <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Customer Orders</span>
-              </div>
-              <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">
-                {getSelectedUnits()} units
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-0">
-              {customerOrders.map((order, index) => {
-                const returnQty = returnQuantities[index] || 0;
-                const productImage = bakeryData[order.brand]?.find(p => p.name === order.product)?.image;
-                
-                return (
-                  <div key={index} className="border-b last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="p-3 space-y-2">
-                      {/* Order Header - Mobile Optimized */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs font-medium">
-                            {order.orderId}
-                          </span>
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{order.brand}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">₹{order.price}</div>
-                          <div className="text-xs text-gray-500">per unit</div>
-                        </div>
-                      </div>
+      {/* Date */}
+      <div>
+        <Label className="text-sm font-medium">Date</Label>
+        <Input
+          type="date"
+          value={formData.date}
+          onChange={(e) => handleInputChange('date', e.target.value)}
+          className="h-11"
+        />
+      </div>
 
-                      {/* Product Info - Mobile Layout */}
-                      <div className="flex items-center space-x-3">
-                        {productImage && (
+      {/* Products Section - Collapsible by Brand */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-4">
+          <ShoppingCart className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Select Products for Return</h3>
+          {getSelectedUnits() > 0 && (
+            <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 px-2 py-1 rounded-full">
+              {getSelectedUnits()} units
+            </span>
+          )}
+        </div>
+
+        {/* Products by Brand - Collapsible */}
+        {['Britannia', 'Oreo', 'McVities'].map((brand) => {
+          const brandProducts = bakeryProducts.filter(product => product.brand === brand);
+          const isExpanded = expandedBrands[brand];
+          return (
+            <div key={brand} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+              {/* Brand Header - Clickable */}
+              <button
+                type="button"
+                onClick={() => toggleBrand(brand)}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-t-lg"
+              >
+                <div className="flex items-center gap-2">
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  )}
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">{brand}</h4>
+                  <span className="text-xs text-gray-500">
+                    ({brandProducts.length} products)
+                  </span>
+                </div>
+              </button>
+              
+              {/* Brand Products - Expandable */}
+              {isExpanded && (
+                <div className="border-t border-gray-200 dark:border-gray-700">
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {brandProducts.map((product) => (
+                      <div key={product.id} className="p-3">
+                        <div className="flex items-center gap-3">
+                          {/* Product Image */}
                           <img 
-                            src={productImage} 
-                            alt={order.product}
-                            className="w-10 h-10 rounded object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0"
+                            src={product.image} 
+                            alt={product.name}
+                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            onError={(e) => {
+                              e.target.src = 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop';
+                            }}
                           />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{order.product}</div>
-                          <div className="text-xs text-gray-500">
-                            Ordered: <span className="font-medium">{order.quantity}</span>
+                          
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium truncate">{product.name}</h4>
+                            <p className="text-xs text-gray-500">₹{product.price} per unit</p>
+                          </div>
+                          
+                          {/* Return Quantity Input */}
+                          <div className="w-24">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={productQuantities[product.id] || ''}
+                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                              className="text-center text-sm h-9 w-full"
+                            />
                           </div>
                         </div>
                       </div>
-
-                      {/* Return Quantity Input - Mobile Optimized */}
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Return Quantity</span>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={order.quantity}
-                            value={returnQty}
-                            onChange={(e) => handleReturnQuantityChange(index, e.target.value)}
-                            className="w-16 h-8 text-center text-sm font-medium border-gray-300"
-                            placeholder="0"
-                          />
-                          <span className="text-xs text-gray-500">/ {order.quantity}</span>
-                        </div>
-                      </div>
-
-                      {/* Amount Display for Mobile */}
-                      {returnQty > 0 && (
-                        <div className="text-center">
-                          <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 rounded-full text-xs font-medium">
-                            Return Amount: ₹{returnQty * order.price}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {formData.customer && customerOrders.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">No previous orders found for this customer</p>
-            <p className="text-sm text-gray-400">Please select a different customer or check order history</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Return Summary - Mobile Optimized */}
-      {getSelectedProducts().length > 0 && (
-        <Card className="shadow-sm border-green-200 dark:border-green-800">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 px-4 py-3">
-            <CardTitle className="flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-              <span className="text-sm font-medium text-green-900 dark:text-green-100">Return Summary</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 space-y-3">
-            <div className="space-y-2">
-              {getSelectedProducts().map((product, index) => (
-                <div key={index} className="p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Package className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-                          {product.brand} - {product.product}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {product.orderId} • Qty: {product.returnQuantity}/{product.quantity}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="font-bold text-green-600">₹{product.returnQuantity * product.price}</div>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-            
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
-                <span className="text-sm font-bold text-blue-900 dark:text-blue-100">
-                  Total {formData.type === 'refund' ? 'Refund' : 'Damage'}:
-                </span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  ₹{calculateTotal()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Additional Information - Mobile Optimized */}
-      <div className="space-y-3">
-        <div>
-          <Label className="text-sm font-medium">Reason</Label>
-          <Input
-            placeholder="Enter reason for refund/damage"
-            value={formData.reason}
-            onChange={(e) => handleInputChange('reason', e.target.value)}
-            className="h-11"
-          />
-        </div>
-        <div>
-          <Label className="text-sm font-medium">Remarks</Label>
-          <Textarea
-            placeholder="Additional comments or notes"
-            value={formData.remarks}
-            onChange={(e) => handleInputChange('remarks', e.target.value)}
-            rows={2}
-            className="resize-none"
-          />
-        </div>
+          );
+        })}
       </div>
 
-      {/* Form Actions - Mobile Optimized */}
-      <div className="flex flex-col sm:flex-row gap-2 pt-2">
+      {/* Return/Damage Summary */}
+      {getSelectedProducts().length > 0 && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <div className="flex justify-between items-center">
+            <div>
+              <h4 className="font-semibold text-sm text-red-700 dark:text-red-300">Return/Damage Summary</h4>
+              <p className="text-xs text-red-500 dark:text-red-400">{getSelectedProducts().length} product types • {getSelectedUnits()} total units</p>
+            </div>
+            <div className="text-right">
+              <div className="font-bold text-lg text-red-600 dark:text-red-400">
+                {getSelectedUnits()}
+              </div>
+              <div className="text-xs text-red-500 dark:text-red-400">Items to Return</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reason Field - Always Visible */}
+      <div className="mt-4">
+        <Label className="text-sm font-medium">Reason for Return/Damage</Label>
+        <Input
+          placeholder="Specify return/damage reason (e.g., damaged during transit, quality defect, wrong product, expired items, packaging issues)"
+          value={formData.reason || ''}
+          onChange={(e) => handleInputChange('reason', e.target.value)}
+          className="h-11 mt-1"
+        />
+      </div>
+
+      {/* Form Actions */}
+      <div className="flex flex-col sm:flex-row gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose} className="h-11 order-2 sm:order-1">
           Cancel
         </Button>
-        <Button type="submit" className="h-11 order-1 sm:order-2">
-          {editData ? 'Update' : 'Create'} {formData.type === 'refund' ? 'Refund' : 'Damage'}
+        <Button 
+          onClick={handleSubmit}
+          disabled={!formData.customer || getSelectedProducts().length === 0}
+          className="h-11 order-1 sm:order-2"
+        >
+          {editData ? 'Update Return/Damage Entry' : 'Create Return/Damage Entry'}
         </Button>
       </div>
-    </form>
+    </div>
   );
 };
 
@@ -522,7 +462,7 @@ const RefundDamage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Access Denied</h2>
-          <p className="text-gray-600 dark:text-gray-400">You don't have permission to view Refund/Damage.</p>
+          <p className="text-gray-600 dark:text-gray-400">You don't have permission to view Return/Damage.</p>
         </div>
       </div>
     );
@@ -668,7 +608,7 @@ const RefundDamage = () => {
   const handleDelete = (id) => {
     toast({
       title: "Deleted",
-      description: "Refund/Damage entry deleted successfully",
+      description: "Return/Damage entry deleted successfully",
       variant: "destructive",
     });
   };
@@ -687,7 +627,7 @@ const RefundDamage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center">
             <FileText className="h-8 w-8 mr-3 text-white" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Refund/Damage</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Return/Damage</h1>
           </div>
           <div className="flex items-center gap-2 mt-4 sm:mt-0">
             {permissions.canAdd && (
@@ -771,7 +711,7 @@ const RefundDamage = () => {
                           <span className="font-medium">{entry.customerName}</span>
                           <span className="text-sm text-gray-500">{entry.id}</span>
                           <span className="text-sm text-gray-500">
-                            {entry.type === 'refund' ? 'Refund' : 'Damage'} • {entry.status}
+                            {entry.type === 'refund' ? 'Return' : 'Damage'} • {entry.status}
                           </span>
                         </div>
                       </TableCell>
@@ -837,9 +777,11 @@ const RefundDamage = () => {
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">Entry Details</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
+              Return/Damage Entry - {selectedEntry?.quantity || 0} Units
+            </DialogTitle>
             <DialogDescription>
-              View complete refund/damage entry information.
+              View complete refund/damage entry information with quantities and damage details.
             </DialogDescription>
           </DialogHeader>
           {selectedEntry && (
@@ -891,9 +833,9 @@ const RefundDamage = () => {
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto">
           <DialogHeader className="pb-3">
-            <DialogTitle className="text-lg">Create New Entry</DialogTitle>
+            <DialogTitle className="text-lg">Create Return/Damage Entry</DialogTitle>
             <DialogDescription className="text-sm">
-              Add a new refund or damage entry.
+              Record return or damage items with product quantities, pricing details, and specific damage reasons.
             </DialogDescription>
           </DialogHeader>
           <CreateEntryForm onClose={() => setIsCreateModalOpen(false)} />
@@ -904,9 +846,11 @@ const RefundDamage = () => {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto">
           <DialogHeader className="pb-3">
-            <DialogTitle className="text-lg">Edit Entry</DialogTitle>
+            <DialogTitle className="text-lg">
+              Edit Return/Damage Entry - {selectedEntry?.quantity || 0} Units
+            </DialogTitle>
             <DialogDescription className="text-sm">
-              Modify refund or damage entry details.
+              Update product quantities, unit pricing, return/damage reasons, and processing status.
             </DialogDescription>
           </DialogHeader>
           <CreateEntryForm onClose={() => setIsEditModalOpen(false)} editData={selectedEntry} />

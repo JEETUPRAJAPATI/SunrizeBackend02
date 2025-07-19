@@ -289,13 +289,23 @@ const dummyOrders = [
 ];
 
 export default function MyDeliveries() {
-  // Permission hooks
-  const permissions = useActionPermissions('sales', 'myDeliveries');
-  
   // Get user role from auth context
   const { user } = useAuth();
   const userRole = user?.role || 'Sales';
   const isAdmin = userRole === 'Super User' || userRole === 'Unit Head';
+  
+  // Permission hooks
+  const originalPermissions = useActionPermissions('sales', 'myDeliveries');
+  
+  // Restrict delivery personnel to view-only access
+  const isDeliveryPersonnel = userRole === 'Dispatch' || userRole === 'Delivery';
+  const permissions = isDeliveryPersonnel ? {
+    ...originalPermissions,
+    canAdd: false,
+    canEdit: false,
+    canDelete: false,
+    canView: originalPermissions.canView
+  } : originalPermissions;
   
   const [deliveries, setDeliveries] = useState(dummyDeliveries);
   const [searchTerm, setSearchTerm] = useState('');
@@ -887,7 +897,7 @@ export default function MyDeliveries() {
                 <TableHead className="hidden sm:table-cell">Order No</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead className="hidden md:table-cell">Delivery Date</TableHead>
-                <TableHead className="hidden lg:table-cell">Driver & Vehicle</TableHead>
+                {!isDeliveryPersonnel && <TableHead className="hidden lg:table-cell">Driver & Vehicle</TableHead>}
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="hidden sm:table-cell text-center">Priority</TableHead>
                 {(permissions.canView || permissions.canEdit || permissions.canDelete) && (
@@ -924,12 +934,14 @@ export default function MyDeliveries() {
                         <span className="text-sm text-gray-500">{delivery.timeSlot}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{delivery.driverName}</span>
-                        <span className="text-sm text-gray-500">{delivery.vehicleNo}</span>
-                      </div>
-                    </TableCell>
+                    {!isDeliveryPersonnel && (
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{delivery.driverName}</span>
+                          <span className="text-sm text-gray-500">{delivery.vehicleNo}</span>
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
                       <div className="flex justify-center">
                         <Badge variant={getStatusVariant(delivery.status)} className="flex items-center gap-1">

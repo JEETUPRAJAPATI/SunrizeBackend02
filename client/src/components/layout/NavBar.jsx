@@ -146,12 +146,14 @@ export default function NavBar({ onSidebarToggle }) {
                   <span>Profile</span>
                 </a>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="/settings" className="flex items-center cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </a>
-              </DropdownMenuItem>
+              {user?.role === 'Super User' && (
+                <DropdownMenuItem asChild>
+                  <a href="/settings" className="flex items-center cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </a>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={logout} 

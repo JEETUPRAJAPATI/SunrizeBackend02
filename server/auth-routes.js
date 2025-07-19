@@ -1,7 +1,7 @@
 import express from 'express';
 import User from './models/User.js';
 import { generateToken, authenticateToken } from './middleware/auth.js';
-import { getUserModules } from './utils/permissions.js';
+
 import { 
   getUsers, 
   getUserById, 
@@ -92,9 +92,6 @@ router.post('/auth/login', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user._id.toString());
 
-    // Get user modules
-    const userModules = getUserModules(user.role);
-
     const userResponse = {
       id: user._id,
       username: user.username,
@@ -105,8 +102,7 @@ router.post('/auth/login', async (req, res) => {
       profile: {
         firstName: user.firstName,
         lastName: user.lastName,
-        phone: user.phone,
-        modules: userModules
+        phone: user.phone
       }
     };
 
@@ -138,8 +134,6 @@ router.get('/auth/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const userModules = getUserModules(user.role);
-
     const userResponse = {
       id: user._id,
       username: user.username,
@@ -152,8 +146,7 @@ router.get('/auth/me', authenticateToken, async (req, res) => {
       profile: {
         firstName: user.firstName,
         lastName: user.lastName,
-        phone: user.phone,
-        modules: userModules
+        phone: user.phone
       }
     };
 

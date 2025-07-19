@@ -1,108 +1,159 @@
 import mongoose from 'mongoose';
 
 const customerSchema = new mongoose.Schema({
-  customerCode: {
+  // Basic Information
+  name: {
     type: String,
-    required: true,
-    unique: true
-  },
-  customerName: {
-    type: String,
-    required: true
+    required: [true, 'Name is required'],
+    trim: true,
+    maxlength: [100, 'Name cannot exceed 100 characters']
   },
   contactPerson: {
     type: String,
-    required: true
+    trim: true,
+    maxlength: [50, 'Contact person cannot exceed 50 characters']
+  },
+  designation: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Designation cannot exceed 50 characters']
+  },
+  category: {
+    type: String,
+    required: [true, 'Category is required'],
+    enum: {
+      values: ['Distributor', 'Retailer', 'Wholesaler', 'End User'],
+      message: 'Category must be one of: Distributor, Retailer, Wholesaler, End User'
+    },
+    default: 'Distributor'
+  },
+  categoryNote: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Category note cannot exceed 200 characters']
+  },
+  active: {
+    type: String,
+    required: [true, 'Active status is required'],
+    enum: {
+      values: ['Yes', 'No'],
+      message: 'Active must be either Yes or No'
+    },
+    default: 'Yes'
+  },
+  
+  // Contact Information
+  mobile: {
+    type: String,
+    required: [true, 'Mobile number is required'],
+    validate: {
+      validator: function(v) {
+        return /^[0-9]{10}$/.test(v); // 10 digit mobile number
+      },
+      message: 'Mobile number must be exactly 10 digits'
+    }
   },
   email: {
     type: String,
-    required: true,
-    lowercase: true
-  },
-  phone: {
-    type: String,
-    required: true
-  },
-  alternatePhone: {
-    type: String
-  },
-  address: {
-    street: {
-      type: String,
-      required: true
-    },
-    city: {
-      type: String,
-      required: true
-    },
-    state: {
-      type: String,
-      required: true
-    },
-    zipCode: {
-      type: String,
-      required: true
-    },
-    country: {
-      type: String,
-      required: true,
-      default: 'India'
+    required: [true, 'Email is required'],
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: function(v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      },
+      message: 'Please enter a valid email address'
     }
   },
-  billingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    country: String
+  gstin: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Optional field
+        // GST format: 2 digits (state) + 10 alphanumeric + 1 letter + 1 digit + 1 letter + 1 digit
+        return /^[0-9]{2}[A-Z0-9]{10}[A-Z][0-9][A-Z][0-9]$/i.test(v) && v.length === 15;
+      },
+      message: 'GSTIN must be in valid 15-character GST format (e.g., 22AAAAA0000A1Z5)'
+    }
   },
-  gstNumber: {
-    type: String
+  salesContact: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Sales contact cannot exceed 50 characters']
   },
-  panNumber: {
-    type: String
+
+  // Address Information
+  address1: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Address cannot exceed 200 characters']
   },
+  googlePin: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Google Pin cannot exceed 100 characters']
+  },
+  city: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'City cannot exceed 50 characters']
+  },
+  state: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'State cannot exceed 50 characters']
+  },
+  country: {
+    type: String,
+    trim: true,
+    default: 'India',
+    maxlength: [50, 'Country cannot exceed 50 characters']
+  },
+  pin: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Optional field
+        return /^\d{6}$/.test(v);
+      },
+      message: 'PIN code must be exactly 6 digits'
+    }
+  },
+
+  // Financial fields (optional for future use)
   creditLimit: {
     type: Number,
     default: 0,
     min: 0
   },
-  creditDays: {
+  outstandingAmount: {
     type: Number,
-    default: 30,
-    min: 0
-  },
-  unit: {
-    type: String,
-    required: true
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  customerType: {
-    type: String,
-    enum: ['Regular', 'VIP', 'Wholesale', 'Retail'],
-    default: 'Regular'
-  },
-  notes: {
-    type: String
+    default: 0
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true, getters: true },
+  toObject: { virtuals: true, getters: true }
 });
 
+// Auto-generate customer code before saving
 customerSchema.pre('save', function(next) {
   if (!this.customerCode) {
-    this.customerCode = `CUST-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+    this.customerCode = `CUST-${timestamp}-${random}`;
   }
-  
-  // Copy address to billing address if not provided
-  if (!this.billingAddress.street) {
-    this.billingAddress = { ...this.address };
-  }
-  
   next();
 });
+
+// Indexes for better query performance
+customerSchema.index({ name: 1 });
+customerSchema.index({ category: 1 });
+customerSchema.index({ active: 1 });
+customerSchema.index({ mobile: 1 });
+customerSchema.index({ email: 1 });
+customerSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Customer', customerSchema);
