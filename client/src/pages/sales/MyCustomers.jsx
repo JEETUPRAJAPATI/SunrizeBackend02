@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ActionButton, useActionPermissions } from '@/components/permissions/ActionButton';
+import { customerApi } from '@/api/customerService';
 import { 
   Card, 
   CardContent, 
@@ -324,69 +325,41 @@ export default function MyCustomers() {
 
   // Create customer mutation
   const createCustomerMutation = useMutation({
-    mutationFn: async (customerData) => {
-      const response = await fetch('/api/customers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(customerData)
-      });
-      
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to create customer');
-      }
-      return result;
-    },
+    mutationFn: (customerData) => customerApi.create(customerData),
     onSuccess: (result) => {
       queryClient.invalidateQueries(['/api/customers']);
       toast({
         title: "Success",
         description: result.message || "Customer created successfully",
       });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create customer",
-        variant: "destructive",
-      });
+      // Close modal on success - form resets in handleSubmit
+      setIsCreateModalOpen(false);
     }
+    // Let form handleSubmit handle all errors
   });
 
   // Update customer mutation
   const updateCustomerMutation = useMutation({
-    mutationFn: async ({ id, customerData }) => {
-      const response = await fetch(`/api/customers/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(customerData)
-      });
-      
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to update customer');
-      }
-      return result;
-    },
+    mutationFn: ({ id, customerData }) => customerApi.update(id, customerData),
     onSuccess: (result) => {
       queryClient.invalidateQueries(['/api/customers']);
       toast({
         title: "Success",
         description: result.message || "Customer updated successfully",
       });
+      // Close modal and clear selected customer
+      setIsEditModalOpen(false);
+      setSelectedCustomer(null);
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update customer",
-        variant: "destructive",
-      });
+      // Only show generic errors, validation errors are handled in the form
+      if (!error.validationErrors) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update customer",
+          variant: "destructive",
+        });
+      }
     }
   });
 
@@ -482,10 +455,64 @@ export default function MyCustomers() {
     });
   };
 
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.customerName.trim()) {
+      errors.customerName = "Customer name is required";
+    }
+    
+    if (!formData.mobile.trim()) {
+      errors.mobile = "Mobile number is required";
+    } else if (!/^\+?[\d\s-()]+$/.test(formData.mobile)) {
+      errors.mobile = "Please enter a valid mobile number";
+    }
+    
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+    
+    if (!formData.addressLine1.trim()) {
+      errors.addressLine1 = "Address is required";
+    }
+    
+    if (!formData.city.trim()) {
+      errors.city = "City is required";
+    }
+    
+    if (!formData.state.trim()) {
+      errors.state = "State is required";
+    }
+    
+    return errors;
+  };
+
   const handleCreate = () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      // Show validation errors
+      const errorMessages = Object.values(errors).join(', ');
+      toast({
+        title: "Validation Error",
+        description: errorMessages,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     createCustomerMutation.mutate(formData);
+  };
+
+  // Handle modal close to ensure form cleanup
+  const handleCreateModalClose = () => {
     setIsCreateModalOpen(false);
-    resetForm();
+    // Additional cleanup will be handled by useEffect in CreateCustomerForm
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedCustomer(null);
+    // Additional cleanup will be handled by useEffect in EditCustomerForm
   };
 
   const handleEdit = (customer) => {
@@ -513,9 +540,6 @@ export default function MyCustomers() {
       id: selectedCustomer._id || selectedCustomer.id, 
       customerData: formData 
     });
-    setIsEditModalOpen(false);
-    setSelectedCustomer(null);
-    resetForm();
   };
 
   const handleDelete = (customerId) => {
@@ -528,6 +552,33 @@ export default function MyCustomers() {
     setSelectedCustomer(customer);
     setIsViewModalOpen(true);
   };
+
+  // Reusable Form Field Components
+  const CategorySelect = ({ value, onValueChange, id = "category", className = "mt-1" }) => (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger id={id} className={className}>
+        <SelectValue placeholder="Select category" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="Distributor">Distributor</SelectItem>
+        <SelectItem value="Retailer">Retailer</SelectItem>
+        <SelectItem value="Wholesaler">Wholesaler</SelectItem>
+        <SelectItem value="End User">End User</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const ActiveStatusSelect = ({ value, onValueChange, id = "active", className = "mt-1" }) => (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger id={id} className={className}>
+        <SelectValue placeholder="Select status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="Yes">Yes</SelectItem>
+        <SelectItem value="No">No</SelectItem>
+      </SelectContent>
+    </Select>
+  );
 
   // Create form with isolated state to fix input focus issue
   const CreateCustomerForm = () => {
@@ -552,6 +603,39 @@ export default function MyCustomers() {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Reset form only when modal closes (on cancel or success)
+    const resetForm = () => {
+      setLocalFormData({
+        name: '',
+        contactPerson: '',
+        designation: '',
+        category: 'Distributor',
+        categoryNote: '',
+        active: 'Yes',
+        mobile: '',
+        email: '',
+        gstin: '',
+        address1: '',
+        googlePin: '',
+        city: '',
+        state: '',
+        country: 'India',
+        pin: '',
+        salesContact: ''
+      });
+      setErrors({});
+      setIsSubmitting(false);
+    };
+    
+    // Reset form when modal closes
+    useEffect(() => {
+      if (!isCreateModalOpen) {
+        resetForm();
+      }
+    }, [isCreateModalOpen]);
+
+    // No real-time validation to avoid interference with form data
 
     const validateForm = () => {
       const newErrors = {};
@@ -583,61 +667,62 @@ export default function MyCustomers() {
       return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async () => {
-      if (!validateForm()) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the errors before submitting",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsSubmitting(true);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      console.log('=== CREATE CUSTOMER SUBMIT ===');
+      console.log('Current localFormData state:', localFormData);
+      console.log('Current errors state:', errors);
       
-      const newCustomer = {
-        name: localFormData.name.trim(),
-        contactPerson: localFormData.contactPerson?.trim() || '',
-        designation: localFormData.designation?.trim() || '',
-        category: localFormData.category,
-        categoryNote: localFormData.categoryNote?.trim() || '',
-        active: localFormData.active,
-        mobile: localFormData.mobile.trim(),
-        email: localFormData.email.trim(),
-        gstin: localFormData.gstin?.trim() || '',
-        address1: localFormData.address1?.trim() || '',
-        googlePin: localFormData.googlePin?.trim() || '',
-        city: localFormData.city?.trim() || '',
-        state: localFormData.state?.trim() || '',
-        country: 'India',
-        pin: localFormData.pin?.trim() || '',
-        salesContact: localFormData.salesContact?.trim() || ''
+      setIsSubmitting(true);
+      // Don't clear errors before API call
+      
+      const customerData = {
+        name: localFormData.name || '',
+        contactPerson: localFormData.contactPerson || '',
+        designation: localFormData.designation || '',
+        category: localFormData.category || 'Distributor',
+        categoryNote: localFormData.categoryNote || '',
+        active: localFormData.active || 'Yes',
+        mobile: localFormData.mobile || '',
+        email: localFormData.email || '',
+        gstin: localFormData.gstin || '',
+        address1: localFormData.address1 || '',
+        googlePin: localFormData.googlePin || '',
+        city: localFormData.city || '',
+        state: localFormData.state || '',
+        country: localFormData.country || 'India',
+        pin: localFormData.pin || '',
+        salesContact: localFormData.salesContact || ''
       };
       
+      console.log('Sending to API:', customerData);
+      
       try {
-        await createCustomerMutation.mutateAsync(newCustomer);
-        setIsCreateModalOpen(false);
-        setLocalFormData({
-          name: '',
-          contactPerson: '',
-          designation: '',
-          category: 'Distributor',
-          categoryNote: '',
-          active: 'Yes',
-          mobile: '',
-          email: '',
-          gstin: '',
-          address1: '',
-          googlePin: '',
-          city: '',
-          state: '',
-          country: 'India',
-          pin: '',
-          salesContact: ''
-        });
-        setErrors({});
+        const result = await createCustomerMutation.mutateAsync(customerData);
+        console.log('API SUCCESS:', result);
+        
+        // Form will be reset when modal closes via useEffect
+        
       } catch (error) {
-        // Error is handled by mutation onError
+        console.log('API ERROR:', error);
+        
+        // Handle server validation errors - preserve form data
+        if (error.validationErrors) {
+          console.log('Setting validation errors:', error.validationErrors);
+          setErrors(error.validationErrors);
+          toast({
+            title: "Validation Error",
+            description: "Please fix the highlighted errors",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to create customer",
+            variant: "destructive",
+          });
+        }
+        // Form data stays intact for validation errors
       } finally {
         setIsSubmitting(false);
       }
@@ -656,7 +741,13 @@ export default function MyCustomers() {
               <Input
                 id="name"
                 value={localFormData.name}
-                onChange={(e) => setLocalFormData({ ...localFormData, name: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, name: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.name) {
+                    setErrors(prev => ({ ...prev, name: null }));
+                  }
+                }}
                 placeholder="Enter customer name"
                 className={`mt-1 ${errors.name ? 'border-red-500' : ''}`}
               />
@@ -684,17 +775,10 @@ export default function MyCustomers() {
             </div>
             <div>
               <Label htmlFor="category" className="text-sm font-medium text-gray-700">Category</Label>
-              <Select value={localFormData.category} onValueChange={(value) => setLocalFormData({ ...localFormData, category: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Distributor">Distributor</SelectItem>
-                  <SelectItem value="Retailer">Retailer</SelectItem>
-                  <SelectItem value="Wholesaler">Wholesaler</SelectItem>
-                  <SelectItem value="End User">End User</SelectItem>
-                </SelectContent>
-              </Select>
+              <CategorySelect 
+                value={localFormData.category} 
+                onValueChange={(value) => setLocalFormData({ ...localFormData, category: value })}
+              />
             </div>
             <div>
               <Label htmlFor="categoryNote" className="text-sm font-medium text-gray-700">Category Note</Label>
@@ -708,22 +792,23 @@ export default function MyCustomers() {
             </div>
             <div>
               <Label htmlFor="active" className="text-sm font-medium text-gray-700">Active</Label>
-              <Select value={localFormData.active} onValueChange={(value) => setLocalFormData({ ...localFormData, active: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Yes">Yes</SelectItem>
-                  <SelectItem value="No">No</SelectItem>
-                </SelectContent>
-              </Select>
+              <ActiveStatusSelect 
+                value={localFormData.active} 
+                onValueChange={(value) => setLocalFormData({ ...localFormData, active: value })}
+              />
             </div>
             <div>
               <Label htmlFor="mobile" className="text-sm font-medium text-gray-700">Mobile *</Label>
               <Input
                 id="mobile"
                 value={localFormData.mobile}
-                onChange={(e) => setLocalFormData({ ...localFormData, mobile: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, mobile: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.mobile) {
+                    setErrors(prev => ({ ...prev, mobile: null }));
+                  }
+                }}
                 placeholder="Enter mobile number"
                 className={`mt-1 ${errors.mobile ? 'border-red-500' : ''}`}
               />
@@ -735,7 +820,13 @@ export default function MyCustomers() {
                 id="email"
                 type="email"
                 value={localFormData.email}
-                onChange={(e) => setLocalFormData({ ...localFormData, email: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, email: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.email) {
+                    setErrors(prev => ({ ...prev, email: null }));
+                  }
+                }}
                 placeholder="Enter email address"
                 className={`mt-1 ${errors.email ? 'border-red-500' : ''}`}
               />
@@ -746,7 +837,13 @@ export default function MyCustomers() {
               <Input
                 id="gstin"
                 value={localFormData.gstin}
-                onChange={(e) => setLocalFormData({ ...localFormData, gstin: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, gstin: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.gstin) {
+                    setErrors(prev => ({ ...prev, gstin: null }));
+                  }
+                }}
                 placeholder="Enter GSTIN"
                 className={`mt-1 ${errors.gstin ? 'border-red-500' : ''}`}
               />
@@ -805,7 +902,13 @@ export default function MyCustomers() {
               <Input
                 id="pin"
                 value={localFormData.pin}
-                onChange={(e) => setLocalFormData({ ...localFormData, pin: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, pin: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.pin) {
+                    setErrors(prev => ({ ...prev, pin: null }));
+                  }
+                }}
                 placeholder="Enter PIN code"
                 className={`mt-1 ${errors.pin ? 'border-red-500' : ''}`}
               />
@@ -835,7 +938,7 @@ export default function MyCustomers() {
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={isSubmitting || !localFormData.name.trim() || !localFormData.mobile.trim() || !localFormData.email.trim()}
+            disabled={isSubmitting}
             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
           >
             {isSubmitting ? 'Creating...' : 'Submit'}
@@ -960,9 +1063,24 @@ export default function MyCustomers() {
           id: selectedCustomer._id || selectedCustomer.id, 
           customerData: updatedCustomerData 
         });
-        setIsEditModalOpen(false);
+        // Form reset and modal close is handled by mutation success handler
       } catch (error) {
-        // Error is handled by mutation onError
+        // Handle server validation errors
+        if (error.validationErrors) {
+          const serverErrors = {};
+          // Map server validation errors to form field names
+          Object.keys(error.validationErrors).forEach(field => {
+            serverErrors[field] = error.validationErrors[field];
+          });
+          setErrors(prevErrors => ({ ...prevErrors, ...serverErrors }));
+          
+          toast({
+            title: "Validation Error",
+            description: "Please fix the highlighted errors",
+            variant: "destructive",
+          });
+        }
+        // Don't reset form on error - preserve user input
       } finally {
         setIsSubmitting(false);
       }
@@ -981,7 +1099,13 @@ export default function MyCustomers() {
               <Input
                 id="edit-name"
                 value={localFormData.name}
-                onChange={(e) => setLocalFormData({ ...localFormData, name: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, name: e.target.value });
+                  // Clear error when user starts typing
+                  if (errors.name) {
+                    setErrors(prev => ({ ...prev, name: null }));
+                  }
+                }}
                 placeholder="Enter customer name"
                 className={`mt-1 ${errors.name ? 'border-red-500' : ''}`}
               />
@@ -1009,17 +1133,11 @@ export default function MyCustomers() {
             </div>
             <div>
               <Label htmlFor="edit-category" className="text-sm font-medium text-gray-700">Category</Label>
-              <Select value={localFormData.category} onValueChange={(value) => setLocalFormData({ ...localFormData, category: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Distributor">Distributor</SelectItem>
-                  <SelectItem value="Retailer">Retailer</SelectItem>
-                  <SelectItem value="Wholesaler">Wholesaler</SelectItem>
-                  <SelectItem value="End User">End User</SelectItem>
-                </SelectContent>
-              </Select>
+              <CategorySelect 
+                value={localFormData.category} 
+                onValueChange={(value) => setLocalFormData({ ...localFormData, category: value })}
+                id="edit-category"
+              />
             </div>
             <div>
               <Label htmlFor="edit-categoryNote" className="text-sm font-medium text-gray-700">Category Note</Label>
@@ -1033,15 +1151,11 @@ export default function MyCustomers() {
             </div>
             <div>
               <Label htmlFor="edit-active" className="text-sm font-medium text-gray-700">Active</Label>
-              <Select value={localFormData.active} onValueChange={(value) => setLocalFormData({ ...localFormData, active: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Yes">Yes</SelectItem>
-                  <SelectItem value="No">No</SelectItem>
-                </SelectContent>
-              </Select>
+              <ActiveStatusSelect 
+                value={localFormData.active} 
+                onValueChange={(value) => setLocalFormData({ ...localFormData, active: value })}
+                id="edit-active"
+              />
             </div>
 
           </div>
@@ -1058,7 +1172,12 @@ export default function MyCustomers() {
               <Input
                 id="edit-mobile"
                 value={localFormData.mobile}
-                onChange={(e) => setLocalFormData({ ...localFormData, mobile: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, mobile: e.target.value });
+                  if (errors.mobile) {
+                    setErrors(prev => ({ ...prev, mobile: null }));
+                  }
+                }}
                 placeholder="Enter mobile number"
                 className={`mt-1 ${errors.mobile ? 'border-red-500' : ''}`}
               />
@@ -1070,7 +1189,12 @@ export default function MyCustomers() {
                 id="edit-email"
                 type="email"
                 value={localFormData.email}
-                onChange={(e) => setLocalFormData({ ...localFormData, email: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, email: e.target.value });
+                  if (errors.email) {
+                    setErrors(prev => ({ ...prev, email: null }));
+                  }
+                }}
                 placeholder="Enter email address"
                 className={`mt-1 ${errors.email ? 'border-red-500' : ''}`}
               />
@@ -1081,7 +1205,12 @@ export default function MyCustomers() {
               <Input
                 id="edit-gstin"
                 value={localFormData.gstin}
-                onChange={(e) => setLocalFormData({ ...localFormData, gstin: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, gstin: e.target.value });
+                  if (errors.gstin) {
+                    setErrors(prev => ({ ...prev, gstin: null }));
+                  }
+                }}
                 placeholder="Enter GSTIN"
                 className={`mt-1 ${errors.gstin ? 'border-red-500' : ''}`}
               />
@@ -1142,7 +1271,12 @@ export default function MyCustomers() {
               <Input
                 id="edit-pin"
                 value={localFormData.pin}
-                onChange={(e) => setLocalFormData({ ...localFormData, pin: e.target.value })}
+                onChange={(e) => {
+                  setLocalFormData({ ...localFormData, pin: e.target.value });
+                  if (errors.pin) {
+                    setErrors(prev => ({ ...prev, pin: null }));
+                  }
+                }}
                 placeholder="Enter PIN code"
                 className={`mt-1 ${errors.pin ? 'border-red-500' : ''}`}
               />

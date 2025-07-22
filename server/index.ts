@@ -109,6 +109,16 @@ app.use('/uploads', express.static('uploads'));
       app.use('/api/companies', companyRoutes);
       console.log('Company routes registered at /api/companies');
 
+      const { default: orderRoutes, salesRouter } = await import('./routes/orderRoutes.js');
+      app.use('/api/orders', orderRoutes);
+      app.use('/api/sales', salesRouter);
+      console.log('Order routes registered at /api/orders');
+      console.log('Sales routes registered at /api/sales');
+
+      const returnRoutes = (await import('./routes/returnRoutes.js')).default;
+      app.use('/api/returns', returnRoutes);
+      console.log('Return routes registered at /api/returns');
+
       // Customer seeding available via endpoint only
 
       // Seed routes without authentication (development only)
@@ -137,6 +147,22 @@ app.use('/uploads', express.static('uploads'));
           res.status(500).json({
             success: false,
             message: 'Error seeding customers',
+            error: error.message
+          });
+        }
+      });
+
+      // Seed orders route (no auth required for development)
+      app.post('/api/seed-orders', async (req, res) => {
+        try {
+          const { seedOrdersData } = await import('./seed/seedOrders.js');
+          const result = await seedOrdersData();
+          res.json(result);
+        } catch (error) {
+          console.error('Error seeding orders:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Error seeding orders',
             error: error.message
           });
         }

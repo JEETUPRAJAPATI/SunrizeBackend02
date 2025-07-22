@@ -1,13 +1,9 @@
 import mongoose from 'mongoose';
-import { ORDER_STATUS } from '../../shared/schema.js';
 
-const orderItemSchema = new mongoose.Schema({
-  productName: {
-    type: String,
-    required: true
-  },
-  productCode: {
-    type: String,
+const orderProductSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
     required: true
   },
   quantity: {
@@ -15,12 +11,12 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 1
   },
-  unitPrice: {
+  price: {
     type: Number,
     required: true,
     min: 0
   },
-  totalPrice: {
+  total: {
     type: Number,
     required: true,
     min: 0
@@ -28,7 +24,7 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
-  orderNumber: {
+  orderCode: {
     type: String,
     required: true,
     unique: true
@@ -38,7 +34,11 @@ const orderSchema = new mongoose.Schema({
     ref: 'Customer',
     required: true
   },
-  items: [orderItemSchema],
+  orderDate: {
+    type: Date,
+    required: true
+  },
+  products: [orderProductSchema],
   totalAmount: {
     type: Number,
     required: true,
@@ -46,45 +46,21 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: Object.values(ORDER_STATUS),
-    default: ORDER_STATUS.NEW
-  },
-  orderDate: {
-    type: Date,
-    default: Date.now
-  },
-  expectedDeliveryDate: {
-    type: Date,
-    required: true
-  },
-  actualDeliveryDate: {
-    type: Date
-  },
-  unit: {
-    type: String,
-    required: true
-  },
-  assignedTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    enum: ['Pending', 'Approved', 'Completed', 'Cancelled'],
+    default: 'Pending'
   },
   notes: {
-    type: String
-  },
-  priority: {
     type: String,
-    enum: ['Low', 'Medium', 'High', 'Urgent'],
-    default: 'Medium'
+    trim: true
   }
 }, {
   timestamps: true
 });
 
-orderSchema.pre('save', function(next) {
-  if (!this.orderNumber) {
-    this.orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  }
-  next();
-});
+// Index for better query performance
+orderSchema.index({ orderCode: 1 });
+orderSchema.index({ customer: 1 });
+orderSchema.index({ orderDate: -1 });
+orderSchema.index({ status: 1 });
 
 export default mongoose.model('Order', orderSchema);

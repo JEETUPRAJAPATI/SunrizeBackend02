@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { customerApi } from '@/api/customerService';
+import { productsApi } from '@/api/productService';
+import { returnApi } from '@/api/returnService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,11 +122,11 @@ const customerOrderHistory = {
 const customers = Object.keys(customerOrderHistory);
 
 // Enhanced form component with customer order-based product selection
-const CreateEntryForm = ({ onClose, editData = null }) => {
+const CreateEntryForm = ({ onClose, editData = null, createMutation, updateMutation }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     customer: editData?.customerName || '',
-    date: editData?.date || new Date().toISOString().split('T')[0],
+    date: editData?.returnDate ? new Date(editData.returnDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     reason: editData?.reason || '',
     products: []
   });
@@ -130,44 +134,71 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
   const [productQuantities, setProductQuantities] = useState({});
   const [expandedBrands, setExpandedBrands] = useState({});
 
-  // Bakery products organized by brand
-  const bakeryProducts = [
-    { id: 1, brand: 'Britannia', name: 'Marie Gold Biscuits', price: 15, image: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=150&h=150&fit=crop' },
-    { id: 2, brand: 'Britannia', name: 'Good Day Cashew Cookies', price: 25, image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=150&h=150&fit=crop' },
-    { id: 3, brand: 'Britannia', name: 'Milk Bikis Biscuits', price: 20, image: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=150&h=150&fit=crop' },
-    { id: 4, brand: 'Oreo', name: 'Oreo Original Cookies', price: 40, image: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=150&h=150&fit=crop' },
-    { id: 5, brand: 'Oreo', name: 'Oreo Chocolate Cream', price: 45, image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=150&h=150&fit=crop' },
-    { id: 6, brand: 'McVities', name: 'Digestive Original', price: 35, image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=150&h=150&fit=crop' },
-    { id: 7, brand: 'McVities', name: 'Dark Chocolate Digestive', price: 42, image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=150&h=150&fit=crop' }
-  ];
+  // Fetch customers from API
+  const { data: customersResponse, isLoading: customersLoading, error: customersError } = useQuery({
+    queryKey: ['/api/customers'],
+    queryFn: () => customerApi.getAll()
+  });
 
+  // Fetch products from API  
+  const { data: productsResponse, isLoading: productsLoading, error: productsError } = useQuery({
+    queryKey: ['/api/products'],
+    queryFn: () => productsApi.getAll()
+  });
 
+  // Fetch brands from API
+  const { data: brandsResponse, isLoading: brandsLoading, error: brandsError } = useQuery({
+    queryKey: ['/api/brands'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/brands', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch brands');
+      }
+      return response.json();
+    }
+  });
 
-  // Sample customers
-  const customers = [
-    'ABC Corporation',
-    'XYZ Bakery',  
-    'Fresh Foods Ltd',
-    'City Restaurant',
-    'Hotel Paradise',
-    'Corner Cafe',
-    'Sweet Treats',
-    'Daily Bread Co'
-  ];
+  // Extract data from API responses  
+  const customers = customersResponse?.customers || [];
+  const brands = brandsResponse?.brands || [];
+  const products = productsResponse?.products || [];
+
+  // Group products by brand
+  const productsByBrand = React.useMemo(() => {
+    const grouped = {};
+    products.forEach(product => {
+      const brandName = product.brand || 'Unknown Brand';
+      if (!grouped[brandName]) {
+        grouped[brandName] = [];
+      }
+      grouped[brandName].push(product);
+    });
+    return grouped;
+  }, [products]);
 
   // Initialize data for edit mode
   React.useEffect(() => {
-    if (editData?.products) {
+    if (editData?.items && products.length > 0) {
       const quantities = {};
-      editData.products.forEach(product => {
-        const bakeryProduct = bakeryProducts.find(p => p.name === product.product && p.brand === product.brand);
-        if (bakeryProduct) {
-          quantities[bakeryProduct.id] = product.returnQuantity || 0;
+      const brandsToExpand = {};
+      
+      editData.items.forEach(item => {
+        const apiProduct = products.find(p => p.name === item.productName);
+        if (apiProduct) {
+          quantities[apiProduct._id] = item.quantity || 0;
+          brandsToExpand[item.brandName] = true;
         }
       });
+      
       setProductQuantities(quantities);
+      setExpandedBrands(brandsToExpand);
     }
-  }, [editData]);
+  }, [editData, products]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -184,20 +215,25 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
   };
 
   const toggleBrand = (brand) => {
-    setExpandedBrands(prev => ({
-      ...prev,
-      [brand]: !prev[brand]
-    }));
+    setExpandedBrands(prev => {
+      const isCurrentlyExpanded = prev[brand];
+      // Accordion behavior: close all others, open clicked one
+      const newState = {};
+      if (!isCurrentlyExpanded) {
+        newState[brand] = true;
+      }
+      return newState;
+    });
   };
 
 
 
   const getSelectedProducts = () => {
-    return bakeryProducts
-      .filter(product => (productQuantities[product.id] || 0) > 0)
+    return products
+      .filter(product => (productQuantities[product._id] || 0) > 0)
       .map(product => ({
         ...product,
-        returnQuantity: productQuantities[product.id]
+        returnQuantity: productQuantities[product._id]
       }));
   };
 
@@ -244,48 +280,55 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
       return;
     }
 
-    // Generate or use existing entry ID
-    const entryId = editData?.id || `RT${String(Date.now()).slice(-4)}`;
-    
-    const entry = {
-      id: entryId,
-      type: 'return',
-      customerName: formData.customer,
-      date: formData.date,
+    // Find selected customer by name from API data
+    const selectedCustomer = customers.find(c => c.name === formData.customer);
+    if (!selectedCustomer) {
+      toast({
+        title: "Error",
+        description: "Selected customer not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Prepare API payload with proper IDs
+    const apiPayload = {
+      customerId: selectedCustomer._id,
+      returnDate: formData.date,
       reason: formData.reason,
-      products: selectedProducts.map(p => ({
-        brand: p.brand,
-        product: p.name,
-        returnQuantity: p.returnQuantity,
-        unitPrice: p.price
-      })),
-      totalAmount: calculateTotal(),
-      status: editData?.status || 'pending'
+      type: 'refund',
+      items: selectedProducts.map(p => {
+        // Find product and brand from API data
+        const apiProduct = products.find(prod => prod.name === p.name);
+        const apiBrand = brands.find(brand => brand.name === p.brand);
+        
+        if (!apiProduct) {
+          console.warn(`Product not found: ${p.name}`);
+        }
+        if (!apiBrand) {
+          console.warn(`Brand not found: ${p.brand}`);
+        }
+
+        return {
+          productId: apiProduct?._id,
+          brandId: apiBrand?._id,
+          productName: p.name,
+          brandName: p.brand,
+          pricePerUnit: p.price,
+          quantity: p.returnQuantity
+        };
+      })
     };
 
-    // Save to localStorage
-    const existingEntries = JSON.parse(localStorage.getItem('refundDamageEntries') || '[]');
-    
+    // Call appropriate mutation
     if (editData) {
-      // Update existing entry
-      const index = existingEntries.findIndex(e => e.id === editData.id);
-      if (index !== -1) {
-        existingEntries[index] = entry;
-      }
+      updateMutation.mutate({ 
+        id: editData._id || editData.id, 
+        data: apiPayload 
+      });
     } else {
-      // Add new entry
-      existingEntries.push(entry);
+      createMutation.mutate(apiPayload);
     }
-    
-    localStorage.setItem('refundDamageEntries', JSON.stringify(existingEntries));
-
-    toast({
-      title: "Success",
-      description: `Return entry ${editData ? 'updated' : 'created'} successfully with ${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}`,
-    });
-
-    onClose();
-    window.location.reload();
   };
 
   return (
@@ -299,9 +342,17 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
             <SelectValue placeholder="Select customer" />
           </SelectTrigger>
           <SelectContent>
-            {customers.map((customer) => (
-              <SelectItem key={customer} value={customer}>{customer}</SelectItem>
-            ))}
+            {customersLoading ? (
+              <SelectItem value="loading" disabled>Loading customers...</SelectItem>
+            ) : customers.length > 0 ? (
+              customers.map((customer) => (
+                <SelectItem key={customer._id || customer.name} value={customer.name}>
+                  {customer.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-customers" disabled>No customers found</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -329,9 +380,19 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
           )}
         </div>
 
+        {/* Loading state */}
+        {(customersLoading || brandsLoading || productsLoading) && (
+          <div className="p-4 text-center text-gray-500">Loading products...</div>
+        )}
+        
+        {/* Error state */}
+        {(customersError || brandsError || productsError) && (
+          <div className="p-4 text-center text-red-500">Error loading data. Please try again.</div>
+        )}
+        
         {/* Products by Brand - Collapsible */}
-        {['Britannia', 'Oreo', 'McVities'].map((brand) => {
-          const brandProducts = bakeryProducts.filter(product => product.brand === brand);
+        {!productsLoading && !productsError && Object.keys(productsByBrand).map((brand) => {
+          const brandProducts = productsByBrand[brand] || [];
           const isExpanded = expandedBrands[brand];
           return (
             <div key={brand} className="border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -359,11 +420,11 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
                 <div className="border-t border-gray-200 dark:border-gray-700">
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {brandProducts.map((product) => (
-                      <div key={product.id} className="p-3">
+                      <div key={product._id} className="p-3">
                         <div className="flex items-center gap-3">
                           {/* Product Image */}
                           <img 
-                            src={product.image} 
+                            src={product.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop'} 
                             alt={product.name}
                             className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                             onError={(e) => {
@@ -383,8 +444,8 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
                               type="number"
                               min="0"
                               placeholder="0"
-                              value={productQuantities[product.id] || ''}
-                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                              value={productQuantities[product._id] || ''}
+                              onChange={(e) => handleQuantityChange(product._id, e.target.value)}
                               className="text-center text-sm h-9 w-full"
                             />
                           </div>
@@ -448,6 +509,7 @@ const CreateEntryForm = ({ onClose, editData = null }) => {
 const RefundDamage = () => {
   const { hasFeatureAccess } = usePermissions();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Check permissions
   const permissions = {
@@ -478,8 +540,118 @@ const RefundDamage = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
 
-  // Dummy data
-  const [entries] = useState([
+  // Fetch returns data from API
+  const { data: returnsResponse, isLoading: returnsLoading, error: returnsError, refetch: refetchReturns } = useQuery({
+    queryKey: ['/api/returns', searchTerm, statusFilter, typeFilter],
+    queryFn: () => returnApi.getAll({ 
+      page: 1, 
+      limit: 50,
+      search: searchTerm || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      type: typeFilter !== 'all' ? typeFilter : undefined
+    })
+  });
+
+  // Get stats
+  const { data: statsResponse } = useQuery({
+    queryKey: ['/api/returns/stats'],
+    queryFn: () => returnApi.getStats()
+  });
+
+  // Mutations for CRUD operations
+  const createMutation = useMutation({
+    mutationFn: returnApi.create,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['/api/returns']);
+      queryClient.invalidateQueries(['/api/returns/stats']);
+      setIsCreateModalOpen(false);
+      toast({
+        title: "Success",
+        description: "Return/Damage entry created successfully",
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error?.message || 'Failed to create entry';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => returnApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['/api/returns']);
+      queryClient.invalidateQueries(['/api/returns/stats']);
+      setIsEditModalOpen(false);
+      toast({
+        title: "Success",
+        description: "Return/Damage entry updated successfully",
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error?.message || 'Failed to update entry';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: returnApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['/api/returns']);
+      queryClient.invalidateQueries(['/api/returns/stats']);
+      toast({
+        title: "Success",
+        description: "Return/Damage entry deleted successfully",
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error?.message || 'Failed to delete entry';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) => returnApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['/api/returns']);
+      queryClient.invalidateQueries(['/api/returns/stats']);
+      setIsStatusModalOpen(false);
+      toast({
+        title: "Success",
+        description: "Status updated successfully",
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error?.message || 'Failed to update status';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const entries = returnsResponse?.returns || [];
+  const statsData = statsResponse?.stats || {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0
+  };
+
+  // Dummy fallback data for development
+  const [fallbackEntries] = useState([
     {
       id: 'RD001',
       customerName: 'ABC Corporation',
@@ -538,22 +710,24 @@ const RefundDamage = () => {
     }
   ]);
 
+  // Use API data or fallback entries
+  const displayEntries = entries.length > 0 ? entries : fallbackEntries;
+  
   // Filter entries
-  const filteredEntries = entries.filter(entry => {
-    const matchesSearch = entry.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.productName.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredEntries = displayEntries.filter(entry => {
+    const matchesSearch = entry.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         entry.reason?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
     const matchesType = typeFilter === 'all' || entry.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // Stats calculation
-  const stats = {
-    total: entries.length,
-    pending: entries.filter(e => e.status === 'pending').length,
-    approved: entries.filter(e => e.status === 'approved').length,
-    completed: entries.filter(e => e.status === 'completed').length
+  // Use API stats or calculate from entries  
+  const stats = statsData.total > 0 ? statsData : {
+    total: displayEntries.length,
+    pending: displayEntries.filter(e => e.status === 'pending').length,
+    approved: displayEntries.filter(e => e.status === 'approved').length,
+    completed: displayEntries.filter(e => e.status === 'completed').length
   };
 
   // Badge variants
@@ -588,32 +762,22 @@ const RefundDamage = () => {
   };
 
   const updateStatus = (newStatus) => {
-    const existingEntries = JSON.parse(localStorage.getItem('refundDamageEntries') || '[]');
-    const updatedEntries = existingEntries.map(entry => 
-      entry.id === selectedEntry.id 
-        ? { ...entry, status: newStatus }
-        : entry
-    );
-    localStorage.setItem('refundDamageEntries', JSON.stringify(updatedEntries));
-    
-    toast({
-      title: "Success",
-      description: `Status updated to ${newStatus}`,
-    });
-    
-    setIsStatusModalOpen(false);
-    window.location.reload();
+    if (selectedEntry) {
+      statusMutation.mutate({ 
+        id: selectedEntry._id || selectedEntry.id, 
+        status: newStatus 
+      });
+    }
   };
 
   const handleDelete = (id) => {
-    toast({
-      title: "Deleted",
-      description: "Return/Damage entry deleted successfully",
-      variant: "destructive",
-    });
+    if (window.confirm('Are you sure you want to delete this entry?')) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const handleRefresh = () => {
+    refetchReturns();
     toast({
       title: "Refreshed",
       description: "Data has been refreshed",
@@ -804,25 +968,57 @@ const RefundDamage = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Product & Amount</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Product:</span> {selectedEntry.productName}</p>
-                    <p><span className="font-medium">Quantity:</span> {selectedEntry.quantity}</p>
+              {/* Products Section */}
+              {selectedEntry.items && selectedEntry.items.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Products ({selectedEntry.items.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedEntry.items.map((item, index) => (
+                      <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded border">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Product</p>
+                            <p className="font-medium">{item.productName}</p>
+                            <p className="text-sm text-gray-500">{item.brandName}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Quantity</p>
+                            <p>{item.quantity} units</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unit Price</p>
+                            <p>₹{item.pricePerUnit}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+                            <p className="font-medium">₹{item.pricePerUnit * item.quantity}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Unit Price:</span> ₹{selectedEntry.unitPrice}</p>
-                    <p><span className="font-medium">Total Amount:</span> ₹{selectedEntry.totalAmount}</p>
+                  
+                  {/* Summary */}
+                  <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Quantity</p>
+                        <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedEntry.totalQuantity} units</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Amount</p>
+                        <p className="text-lg font-bold text-blue-900 dark:text-blue-100">₹{selectedEntry.totalAmount}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Reason & Remarks</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Reason:</span> {selectedEntry.reason}</p>
-                  <p><span className="font-medium">Remarks:</span> {selectedEntry.remarks}</p>
-                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Reason</h3>
+                <p className="text-gray-700 dark:text-gray-300">{selectedEntry.reason}</p>
               </div>
             </div>
           )}
@@ -838,7 +1034,11 @@ const RefundDamage = () => {
               Record return or damage items with product quantities, pricing details, and specific damage reasons.
             </DialogDescription>
           </DialogHeader>
-          <CreateEntryForm onClose={() => setIsCreateModalOpen(false)} />
+          <CreateEntryForm 
+            onClose={() => setIsCreateModalOpen(false)} 
+            createMutation={createMutation}
+            updateMutation={updateMutation}
+          />
         </DialogContent>
       </Dialog>
 
@@ -853,7 +1053,12 @@ const RefundDamage = () => {
               Update product quantities, unit pricing, return/damage reasons, and processing status.
             </DialogDescription>
           </DialogHeader>
-          <CreateEntryForm onClose={() => setIsEditModalOpen(false)} editData={selectedEntry} />
+          <CreateEntryForm 
+            onClose={() => setIsEditModalOpen(false)} 
+            editData={selectedEntry}
+            createMutation={createMutation}
+            updateMutation={updateMutation}
+          />
         </DialogContent>
       </Dialog>
 

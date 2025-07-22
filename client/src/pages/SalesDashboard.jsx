@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,110 +25,28 @@ const SalesDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  // Mock salesman data
-  const salesmanData = {
-    name: user?.fullName || 'Sales Person',
-    salesmanNumber: 'TPT-Sales-8489',
-    lastLogin: '11:23 AM IST',
-    profileStatus: 'Active'
-  };
-
-  // Order summary stats
-  const orderSummary = {
-    totalOrders: 36,
-    delivered: 29,
-    inProgress: 4,
-    preparation: 3
-  };
-
-  // Recent orders (indents) data
-  const recentOrders = [
-    {
-      id: '986673639',
-      orderDate: '21/04/2025',
-      status: 'Created',
-      statusColor: 'blue',
-      customer: 'ABC Corporation',
-      items: 3,
-      totalQuantity: 150
-    },
-    {
-      id: '986673638',
-      orderDate: '21/04/2025',
-      status: 'Cancelled',
-      statusColor: 'red',
-      customer: 'XYZ Industries',
-      items: 2,
-      totalQuantity: 75
-    },
-    {
-      id: '986673637',
-      orderDate: '21/04/2025',
-      status: 'Processing',
-      statusColor: 'yellow',
-      customer: 'Tech Solutions',
-      items: 5,
-      totalQuantity: 200
-    },
-    {
-      id: '932567120',
-      orderDate: '18/04/2025',
-      status: 'Out For Delivery',
-      statusColor: 'green',
-      customer: 'Global Corp',
-      items: 4,
-      totalQuantity: 120
-    },
-    {
-      id: '919619617',
-      orderDate: '10/04/2025',
-      status: 'Delivered',
-      statusColor: 'green',
-      customer: 'Prime Industries',
-      items: 6,
-      totalQuantity: 300
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+      case 'completed':
+        return 'green';
+      case 'approved':
+      case 'processing':
+      case 'in progress':
+        return 'yellow';
+      case 'pending':
+      case 'created':
+        return 'blue';
+      case 'cancelled':
+      case 'rejected':
+        return 'red';
+      case 'out for delivery':
+        return 'green';
+      default:
+        return 'blue';
     }
-  ];
-
-  // Recent invoices data
-  const recentInvoices = [
-    {
-      id: 'INV-2025-001',
-      customerName: 'ABC Manufacturing Ltd',
-      invoiceDate: '2025-01-07',
-      dueDate: '2025-02-06',
-      totalAmount: 147500,
-      status: 'Paid',
-      statusColor: 'green'
-    },
-    {
-      id: 'INV-2025-002',
-      customerName: 'XYZ Industries Corp',
-      invoiceDate: '2025-01-08',
-      dueDate: '2025-02-07',
-      totalAmount: 98750,
-      status: 'Partially Paid',
-      statusColor: 'yellow'
-    },
-    {
-      id: 'INV-2025-003',
-      customerName: 'PQR Steel Works',
-      invoiceDate: '2025-01-09',
-      dueDate: '2025-02-08',
-      totalAmount: 125000,
-      status: 'Pending',
-      statusColor: 'blue'
-    },
-    {
-      id: 'INV-2025-004',
-      customerName: 'LMN Auto Parts',
-      invoiceDate: '2025-01-08',
-      dueDate: '2025-02-07',
-      totalAmount: 87500,
-      status: 'Paid',
-      statusColor: 'green'
-    }
-  ];
+  };
 
   const getStatusBadgeVariant = (color) => {
     switch (color) {
@@ -154,6 +73,48 @@ const SalesDashboard = () => {
     }
   };
 
+  // Mock salesman data
+  const salesmanData = {
+    name: user?.fullName || 'Sales Person',
+    salesmanNumber: 'TPT-Sales-8489',
+    lastLogin: '11:23 AM IST',
+    profileStatus: 'Active'
+  };
+
+  // API queries for dynamic data
+  const { data: salesSummary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['/api/sales/summary'],
+    staleTime: 30000, // 30 seconds
+  });
+
+  const { data: recentOrdersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ['/api/sales/recent-orders'],
+    staleTime: 30000, // 30 seconds
+  });
+
+  // Transform API data to match UI expectations
+  const orderSummary = summaryLoading ? {
+    totalOrders: 0,
+    delivered: 0,
+    inProgress: 0,
+    preparation: 0
+  } : {
+    totalOrders: salesSummary?.totalOrders || 0,
+    delivered: salesSummary?.delivered || 0,
+    inProgress: salesSummary?.inProgress || 0,
+    preparation: salesSummary?.preparation || 0
+  };
+
+  const recentOrders = ordersLoading ? [] : (recentOrdersData?.orders || []).map(order => ({
+    id: order.orderCode || order._id,
+    orderDate: order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-GB') : 'N/A',
+    status: order.status || 'Created',
+    statusColor: getStatusColor(order.status),
+    customer: order.customerName || 'Unknown Customer',
+    items: Array.isArray(order.items) ? order.items.length : (order.totalItems || 0),
+    totalQuantity: order.totalQuantity || 0
+  }));
+
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setIsViewModalOpen(true);
@@ -167,9 +128,8 @@ const SalesDashboard = () => {
     setLocation('/sales/orders');
   };
 
-  const handleViewAllInvoices = () => {
-    setLocation('/sales/my-invoices');
-  };
+  // Loading state for better UX
+  const isLoading = summaryLoading || ordersLoading;
 
   return (
     <div className="p-4 space-y-6 max-w-7xl mx-auto">
@@ -207,7 +167,7 @@ const SalesDashboard = () => {
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-2xl font-bold text-gray-600 dark:text-gray-300">
-                  {orderSummary.totalOrders}
+                  {isLoading ? '...' : orderSummary.totalOrders}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Orders</p>
@@ -218,7 +178,7 @@ const SalesDashboard = () => {
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {orderSummary.delivered}
+                  {isLoading ? '...' : orderSummary.delivered}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Delivered</p>
@@ -229,7 +189,7 @@ const SalesDashboard = () => {
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {orderSummary.inProgress}
+                  {isLoading ? '...' : orderSummary.inProgress}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">In Progress</p>
@@ -240,7 +200,7 @@ const SalesDashboard = () => {
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {orderSummary.preparation}
+                  {isLoading ? '...' : orderSummary.preparation}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Preparation</p>
@@ -279,89 +239,45 @@ const SalesDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.orderDate}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={getStatusBadgeVariant(order.statusColor)}
-                      className="flex items-center gap-1 w-fit"
-                    >
-                      {getStatusIcon(order.status)}
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewOrder(order)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      VIEW
-                    </Button>
+              {recentOrders.length === 0 && !isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                    No orders found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                recentOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.orderDate}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={getStatusBadgeVariant(order.statusColor)}
+                        className="flex items-center gap-1 w-fit"
+                      >
+                        {getStatusIcon(order.status)}
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewOrder(order)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        VIEW
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Recent Invoices Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-purple-500" />
-              <CardTitle>Recent Invoices</CardTitle>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleViewAllInvoices}
-              className="flex items-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              View All
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.customerName}</TableCell>
-                  <TableCell>₹{invoice.totalAmount.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={getStatusBadgeVariant(invoice.statusColor)}
-                      className="flex items-center gap-1 w-fit"
-                    >
-                      {invoice.status === 'Paid' ? <CheckCircle className="h-3 w-3" /> :
-                       invoice.status === 'Pending' ? <Clock className="h-3 w-3" /> :
-                       invoice.status === 'Partially Paid' ? <AlertTriangle className="h-3 w-3" /> :
-                       <Package className="h-3 w-3" />}
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
 
       {/* View Order Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>

@@ -21,6 +21,20 @@ import {
   uploadCompanyLogo,
   upload
 } from './controllers/settingsController.js';
+import {
+  getBrands,
+  createBrand,
+  updateBrand,
+  deleteBrand
+} from './controllers/brandController.js';
+import {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getProductsByBrand
+} from './controllers/productController.js';
 import bcrypt from 'bcryptjs';
 import { profileUpload } from './middleware/upload.js';
 import path from 'path';
@@ -216,5 +230,19 @@ router.put('/settings/email', verifyToken, updateEmailSettings);
 router.put('/settings/modules', verifyToken, updateModuleSettings);
 router.put('/settings/notifications', verifyToken, updateNotificationSettings);
 router.post('/settings/company/logo', verifyToken, upload.single('logo'), uploadCompanyLogo);
+
+// Brand routes
+router.get('/brands', verifyToken, getBrands);
+router.post('/brands', verifyToken, createBrand);
+router.put('/brands/:id', verifyToken, updateBrand);
+router.delete('/brands/:id', verifyToken, deleteBrand);
+
+// Product routes
+router.get('/products', verifyToken, getProducts);
+router.get('/products/:id', verifyToken, getProductById);
+router.post('/products', verifyToken, createProduct);
+router.put('/products/:id', verifyToken, updateProduct);
+router.delete('/products/:id', verifyToken, deleteProduct);
+router.get('/brands/:brandId/products', verifyToken, getProductsByBrand);
 
 export default router;
