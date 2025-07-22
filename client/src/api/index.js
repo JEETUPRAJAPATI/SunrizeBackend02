@@ -16,11 +16,18 @@ async function throwIfResNotOk(res) {
       const error = new Error(errorData.message || 'Validation failed');
       error.status = res.status;
       error.validationErrors = {};
+      error.errors = errorData.errors; // Keep original errors array
+      error.allErrorMessages = []; // All error messages for toast
       
-      // Convert array of errors to object for easier access
+      // Convert array of errors to object for easier access (first error per field)
       errorData.errors.forEach(err => {
         if (err.field) {
-          error.validationErrors[err.field] = err.message;
+          // Only set first error per field for inline display
+          if (!error.validationErrors[err.field]) {
+            error.validationErrors[err.field] = err.message;
+          }
+          // Collect all error messages for toast
+          error.allErrorMessages.push(err.message);
         }
       });
       
