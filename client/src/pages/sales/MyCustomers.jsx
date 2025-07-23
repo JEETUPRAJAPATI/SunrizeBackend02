@@ -56,6 +56,8 @@ const MyCustomers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -68,26 +70,51 @@ const MyCustomers = () => {
   const canEdit = hasFeatureAccess('sales', 'myCustomers', 'edit');
   const canDelete = hasFeatureAccess('sales', 'myCustomers', 'delete');
 
-  // Fetch customers
-  const { data: customersData = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/customers'],
-    select: (data) => data?.customers || []
+  // Build query parameters for API
+  const queryParams = {
+    page: currentPage,
+    limit: itemsPerPage,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  };
+
+  if (searchTerm) queryParams.name = searchTerm;
+  if (statusFilter !== 'All') {
+    // Map frontend filter values to backend values
+    queryParams.status = statusFilter === 'Active' ? 'Yes' : 'No';
+  }
+  if (categoryFilter !== 'All') queryParams.customerType = categoryFilter;
+
+  // Fetch customers with pagination and filtering
+  const { data: customersResponse, isLoading, refetch } = useQuery({
+    queryKey: ['/api/customers', queryParams],
+    queryFn: () => customerApi.getAll(queryParams),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Filter customers
-  const filteredCustomers = customersData.filter(customer => {
-    const matchesSearch = customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.mobile?.includes(searchTerm);
-    const matchesStatus = statusFilter === 'All' || customer.active === statusFilter;
-    const matchesCategory = categoryFilter === 'All' || customer.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const customersData = customersResponse?.customers || [];
+  const pagination = customersResponse?.pagination || {};
 
-  // Stats
-  const totalCustomers = customersData.length;
+  // Stats (from API response or calculate from current page)
+  const totalCustomers = pagination.total || customersData.length;
   const activeCustomers = customersData.filter(c => c.active === 'Yes').length;
-  const premiumCustomers = customersData.filter(c => c.category === 'Premium').length;
+  const distributorCustomers = customersData.filter(c => c.category === 'Distributor').length;
+
+  // Reset page when filters change
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (value) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -178,12 +205,12 @@ const MyCustomers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">Distributors</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{premiumCustomers}</div>
-            <p className="text-xs text-muted-foreground">Premium tier customers</p>
+            <div className="text-2xl font-bold">{distributorCustomers}</div>
+            <p className="text-xs text-muted-foreground">Distributor customers</p>
           </CardContent>
         </Card>
       </div>
@@ -195,21 +222,21 @@ const MyCustomers = () => {
           <Input
             placeholder="Search customers by name, email, phone..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-8"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All">All Status</SelectItem>
-            <SelectItem value="Yes">Active</SelectItem>
-            <SelectItem value="No">Inactive</SelectItem>
+            <SelectItem value="Active">Active</SelectItem>
+            <SelectItem value="Inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
@@ -243,8 +270,9 @@ const MyCustomers = () => {
       </div>
 
       {/* Customers Table */}
-      <div className="bg-white rounded-lg border">
-        <Table>
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
@@ -264,7 +292,7 @@ const MyCustomers = () => {
                   </TableCell>
                 </TableRow>
               ))
-            ) : filteredCustomers.length === 0 ? (
+            ) : customersData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
                   <div className="text-gray-500">
@@ -275,7 +303,7 @@ const MyCustomers = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredCustomers.map((customer) => (
+              customersData.map((customer) => (
                 <TableRow key={customer._id}>
                   <TableCell>
                     <div className="font-medium">{customer.name}</div>
@@ -348,7 +376,52 @@ const MyCustomers = () => {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="text-sm text-gray-500">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, pagination.total)} of {pagination.total} customers
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                const pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                if (pageNum > pagination.pages) return null;
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className="w-8 h-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.pages))}
+              disabled={currentPage === pagination.pages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* View Customer Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>

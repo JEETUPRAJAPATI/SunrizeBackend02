@@ -13,7 +13,7 @@ import MetricsCard from "@/components/dashboard/MetricsCard";
 import ProductionChart from "@/components/dashboard/ProductionChart";
 import SalesChart from "@/components/dashboard/SalesChart";
 import RecentOrders from "@/components/dashboard/RecentOrders";
-import Alerts from "@/components/dashboard/Alerts";
+
 import QuickActions from "@/components/dashboard/QuickActions";
 import {
   ShoppingCart,
@@ -45,9 +45,9 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-0">
       {/* Welcome Section - Full Width */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4 md:gap-6">
         {/* Welcome Message - 6 columns */}
         <div className="col-span-12 md:col-span-8">
           <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-xl h-full">
@@ -130,18 +130,18 @@ export default function Dashboard() {
       </div>
 
       {/* Analytics Overview */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
           Analytics Overview
         </h2>
-        <Button variant="outline">
+        <Button variant="outline" size="sm" className="w-fit">
           <TrendingUp className="w-4 h-4 mr-2" />
           Last 30 days
         </Button>
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <MetricsCard
           title="Total Orders"
           value={
@@ -180,7 +180,7 @@ export default function Dashboard() {
         <MetricsCard
           title="Revenue"
           value={
-            isLoading ? "..." : `$${(metrics.revenue || 0).toLocaleString()}`
+            isLoading ? "..." : `₹${(metrics.revenue || 0).toLocaleString()}`
           }
           change={
             isLoading ? "" : `${metrics.revenueGrowth || 0}% this quarter`
@@ -192,18 +192,17 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <ProductionChart />
         <SalesChart />
       </div>
 
       {/* Recent Activities and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
           <RecentOrders />
         </div>
         <div className="space-y-6">
-          <Alerts />
           <QuickActions />
         </div>
       </div>

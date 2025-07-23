@@ -44,7 +44,6 @@ import {
   Eye,
   Tag,
   Package2,
-  DollarSign,
   AlertTriangle,
   BarChart3,
   TrendingUp,
@@ -55,11 +54,10 @@ import {
   Users
 } from 'lucide-react';
 
-import ModernInventoryForm from './ModernInventoryForm';
+import SimpleInventoryForm from './SimpleInventoryForm';
 import ViewItemModal from './ViewItemModal';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import CategoryManagement from './CategoryManagement';
-import ExcelImportExport from './ExcelImportExport';
 
 import { apiRequest } from '@/lib/queryClient';
 import { showSmartToast } from '@/lib/toast-utils';
@@ -78,7 +76,7 @@ function ModernStats({ stats, isLoading }) {
     {
       title: 'Total Value',
       value: `₹${stats?.overview?.totalValue?.toLocaleString() || 0}`,
-      icon: DollarSign,
+      icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       change: '+8%'
@@ -141,7 +139,9 @@ export default function ModernInventoryUI() {
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, item: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [showCustomerCategoryModal, setShowCustomerCategoryModal] = useState(false);
 
@@ -281,7 +281,7 @@ export default function ModernInventoryUI() {
     });
   };
 
-  // Filter and sort items
+  // Filter and sort items (newest first by default)
   const filteredItems = items.filter(item => {
     const matchesSearch = !searchTerm || 
       item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -301,10 +301,28 @@ export default function ModernInventoryUI() {
         return (a.category || '').localeCompare(b.category || '');
       case 'qty':
         return (b.qty || 0) - (a.qty || 0);
+      case 'newest':
       default:
-        return 0;
+        // Default: newest items first (by creation date)
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     }
   });
+
+  // Pagination logic
+  const totalItems = filteredItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+  // Reset to first page when search or filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   return (
     <div className="space-y-6">
@@ -346,7 +364,6 @@ export default function ModernInventoryUI() {
                 <Users className="h-4 w-4 mr-2" />
                 Customer Category
               </Button>
-              <ExcelImportExport type="items" />
               <Button 
                 onClick={handleRefresh}
                 variant="outline"
@@ -408,6 +425,7 @@ export default function ModernInventoryUI() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="name">Name A-Z</SelectItem>
                   <SelectItem value="code">Code</SelectItem>
                   <SelectItem value="category">Category</SelectItem>
@@ -420,6 +438,7 @@ export default function ModernInventoryUI() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-800/50">
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Image</TableHead>
                     <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Name/Code</TableHead>
                     <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Category</TableHead>
                     <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Stock</TableHead>
@@ -431,24 +450,40 @@ export default function ModernInventoryUI() {
                 <TableBody>
                   {itemsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         Loading items...
                       </TableCell>
                     </TableRow>
                   ) : filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No items found. Add your first inventory item to get started.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredItems.map((item, index) => (
+                    paginatedItems.map((item, index) => (
                       <TableRow 
                         key={item._id} 
                         className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
                           index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/20'
                         }`}
                       >
+                        <TableCell className="py-4">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            {item.image ? (
+                              <img 
+                                src={item.image} 
+                                alt={item.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNiAxNkMyMC40MTgzIDE2IDI0IDE5LjU4MTcgMjQgMjRTMjAuNDE4MyAzMiAxNiAzMlM4IDI4LjQxODMgOCAyNFMxMS41ODE3IDE2IDE2IDE2WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                                }}
+                              />
+                            ) : (
+                              <Package className="h-6 w-6 text-gray-400" />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="py-4">
                           <div>
                             <div className="font-medium text-gray-900 dark:text-gray-100">{item.name}</div>
@@ -493,30 +528,35 @@ export default function ModernInventoryUI() {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onClick={() => handleView(item)} className="hover:bg-blue-50 dark:hover:bg-blue-950/30">
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(item)} className="hover:bg-green-50 dark:hover:bg-green-950/30">
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Item
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(item)}
-                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 dark:text-red-400"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleView(item)}
+                              className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEdit(item)}
+                              className="h-8 w-8 p-0 hover:bg-green-50 dark:hover:bg-green-900/30"
+                              title="Edit Item"
+                            >
+                              <Edit className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleDelete(item)}
+                              className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/30"
+                              title="Delete Item"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -524,11 +564,65 @@ export default function ModernInventoryUI() {
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-gray-500">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} items
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let page;
+                    if (totalPages <= 5) {
+                      page = i + 1;
+                    } else if (currentPage <= 3) {
+                      page = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      page = totalPages - 4 + i;
+                    } else {
+                      page = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <ModernInventoryForm
+      <SimpleInventoryForm
         isOpen={showForm}
         onClose={() => {
           setShowForm(false);

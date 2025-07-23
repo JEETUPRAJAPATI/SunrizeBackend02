@@ -140,7 +140,12 @@ export const getCustomers = [
 
       // Build filter object
       const filter = {};
-      if (status) filter.active = status;
+      if (status) {
+        // Handle status filter - backend stores 'Yes'/'No' but query might send 'Active'/'Inactive'
+        if (status === 'Active') filter.active = 'Yes';
+        else if (status === 'Inactive') filter.active = 'No';
+        else filter.active = status; // Handle direct 'Yes'/'No' values
+      }
       if (customerType) filter.category = customerType;
       if (name) {
         filter.$or = [

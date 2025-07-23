@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { brandsApi } from '../../api/brandService';
-import { productsApi } from '../../api/productService';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -22,66 +20,62 @@ const ProductSelector = React.memo(({
   const [expandedBrands, setExpandedBrands] = useState({});
   const { toast } = useToast();
 
-  // Fetch brands
-  const { data: brandsResponse, isLoading: brandsLoading, error: brandsError } = useQuery({
-    queryKey: ['/api/brands'],
-    queryFn: brandsApi.getAll,
+  // Fetch inventory items
+  const { data: itemsResponse, isLoading: itemsLoading, error: itemsError } = useQuery({
+    queryKey: ['/api/items'],
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to load brands",
+        description: "Failed to load inventory items",
         variant: "destructive"
       });
     }
   });
 
-  // Fetch products
-  const { data: productsResponse, isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ['/api/products', { search: searchTerm, brandId: selectedBrand }],
-    queryFn: () => productsApi.getAll({ 
-      search: searchTerm, 
-      brandId: selectedBrand === 'all' ? undefined : selectedBrand, 
-      limit: 50 
-    }),
-    onError: (error) => {
-      toast({
-        title: "Error", 
-        description: "Failed to load products",
-        variant: "destructive"
-      });
-    }
-  });
+  const items = itemsResponse?.items || [];
 
-  const brands = brandsResponse?.brands || [];
-  const products = productsResponse?.products || [];
-
-  // Group products by brand
+  // Group inventory items by category (treat as brands for UI consistency)
   const productsByBrand = React.useMemo(() => {
     const grouped = {};
-    products.forEach(product => {
-      const brandName = product.brand || 'Unknown Brand';
-      if (!grouped[brandName]) {
-        grouped[brandName] = [];
+    
+    // Filter items based on search term
+    const filteredItems = items.filter(item => 
+      searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    filteredItems.forEach(item => {
+      const categoryName = item.category || 'Uncategorized';
+      if (!grouped[categoryName]) {
+        grouped[categoryName] = [];
       }
-      grouped[brandName].push(product);
+      // Transform inventory item to match expected product format
+      grouped[categoryName].push({
+        _id: item._id,
+        name: item.name,
+        price: item.salePrice || 0,
+        image: item.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop',
+        brand: categoryName,
+        stock: item.qty || 0,
+        unit: item.unit || 'pcs',
+        code: item.code || ''
+      });
     });
     return grouped;
-  }, [products]);
+  }, [items, searchTerm]);
 
-  // Track brands that have quantities (should stay locked open)
+  // Track categories that have quantities (should stay locked open)
   const brandsWithQuantities = React.useMemo(() => {
     const brandsSet = new Set();
     selectedProducts.forEach(product => {
       if (product.quantity > 0) {
-        const productData = products.find(p => p._id === product._id);
-        if (productData) {
-          const brandName = productData.brand || 'Unknown Brand';
-          brandsSet.add(brandName);
-        }
+        brandsSet.add(product.brand);
       }
     });
     return brandsSet;
-  }, [selectedProducts, products]);
+  }, [selectedProducts]);
 
   const toggleBrandExpansion = (brandName) => {
     setExpandedBrands(prev => {
@@ -129,13 +123,18 @@ const ProductSelector = React.memo(({
       if (existingProduct) {
         onQuantityChange(productId, numQuantity);
       } else {
-        // Add new product with quantity
-        const product = products.find(p => p._id === productId);
-        if (product) {
+        // Add new product with quantity - find from all grouped products
+        let foundProduct = null;
+        Object.values(productsByBrand).forEach(brandProducts => {
+          const product = brandProducts.find(p => p._id === productId);
+          if (product) foundProduct = product;
+        });
+        
+        if (foundProduct) {
           onProductSelect({
-            ...product,
+            ...foundProduct,
             quantity: numQuantity,
-            totalPrice: product.price * numQuantity
+            totalPrice: foundProduct.price * numQuantity
           });
         }
       }
@@ -147,12 +146,12 @@ const ProductSelector = React.memo(({
     return selectedProduct?.quantity || 0;
   };
 
-  if (brandsError || productsError) {
+  if (itemsError) {
     return (
       <Card className={className}>
         <CardContent className="p-6">
           <div className="text-center text-red-600">
-            Failed to load product data. Please try again.
+            Failed to load inventory data. Please try again.
           </div>
         </CardContent>
       </Card>
@@ -180,13 +179,13 @@ const ProductSelector = React.memo(({
           </div>
           <Select value={selectedBrand} onValueChange={setSelectedBrand}>
             <SelectTrigger className="sm:w-48">
-              <SelectValue placeholder="Filter by brand" />
+              <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Brands</SelectItem>
-              {brands.map(brand => (
-                <SelectItem key={brand._id} value={brand._id}>
-                  {brand.name}
+              <SelectItem value="all">All Categories</SelectItem>
+              {Object.keys(productsByBrand).map(category => (
+                <SelectItem key={category} value={category}>
+                  {category}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -195,7 +194,7 @@ const ProductSelector = React.memo(({
       </CardHeader>
 
       <CardContent>
-        {brandsLoading || productsLoading ? (
+        {itemsLoading ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -206,7 +205,9 @@ const ProductSelector = React.memo(({
           </div>
         ) : (
           <div className="space-y-4">
-            {Object.entries(productsByBrand).map(([brandName, brandProducts]) => {
+            {Object.entries(productsByBrand)
+              .filter(([categoryName]) => selectedBrand === 'all' || categoryName === selectedBrand)
+              .map(([brandName, brandProducts]) => {
               const hasQuantities = brandsWithQuantities.has(brandName);
               const isExpanded = expandedBrands[brandName];
               
@@ -250,6 +251,7 @@ const ProductSelector = React.memo(({
                     {/* Header Row */}
                     <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
                       <span>ITEM NAME</span>
+                      <span className="w-16 text-center">STOCK</span>
                       <span className="w-20 text-center">QUANTITY</span>
                     </div>
                     
@@ -278,20 +280,47 @@ const ProductSelector = React.memo(({
                             <div>
                               <h4 className="font-medium">{product.name}</h4>
                               <p className="text-sm text-green-600 font-semibold">
-                                ₹{product.price}
+                                ₹{product.price} / {product.unit}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Code: {product.code}
                               </p>
                             </div>
+                          </div>
+
+                          {/* Stock Display */}
+                          <div className="w-16 text-center">
+                            <span className={`text-sm font-medium ${
+                              product.stock <= 0 ? 'text-red-500' : 
+                              product.stock <= 10 ? 'text-orange-500' : 'text-green-600'
+                            }`}>
+                              {product.stock}
+                            </span>
+                            <p className="text-xs text-gray-400">{product.unit}</p>
                           </div>
 
                           <div className="w-20">
                             <Input
                               type="number"
                               min="0"
-                              placeholder="0"
+                              max={product.stock}
+                              placeholder={product.stock > 0 ? "0" : "Out of Stock"}
                               value={selectedQuantity || ''}
+                              disabled={product.stock <= 0}
                               onChange={(e) => {
                                 e.stopPropagation();
-                                handleQuantityUpdate(product._id, e.target.value);
+                                const requestedQty = parseInt(e.target.value) || 0;
+                                if (requestedQty > product.stock && product.stock > 0) {
+                                  toast({
+                                    title: "Stock Limit Exceeded",
+                                    description: `Only ${product.stock} ${product.unit} available for ${product.name}`,
+                                    variant: "destructive"
+                                  });
+                                  e.target.value = product.stock;
+                                  handleQuantityUpdate(product._id, product.stock);
+                                } else {
+                                  handleQuantityUpdate(product._id, e.target.value);
+                                }
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -306,7 +335,9 @@ const ProductSelector = React.memo(({
                               onInput={(e) => {
                                 e.stopPropagation();
                               }}
-                              className="w-full text-center text-sm h-8"
+                              className={`w-full text-center text-sm h-8 ${
+                                product.stock <= 0 ? 'bg-gray-100 cursor-not-allowed' : ''
+                              }`}
                             />
                           </div>
                         </div>

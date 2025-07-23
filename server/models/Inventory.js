@@ -119,7 +119,12 @@ const itemSchema = new mongoose.Schema({
   customerPrices: [{
     category: String,
     price: Number
-  }]
+  }],
+  image: {
+    type: String,
+    trim: true,
+    default: null
+  }
 }, {
   timestamps: true
 });

@@ -171,7 +171,9 @@ const MyOrders = () => {
       page: currentPage,
       limit: itemsPerPage,
       search: searchTerm,
-      status: statusFilter === 'all' ? '' : statusFilter
+      status: statusFilter === 'all' ? '' : statusFilter,
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
     })
   });
 
@@ -1033,62 +1035,7 @@ const MyOrders = () => {
             ))}
           </div>
 
-          {/* Mobile Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex flex-col items-center justify-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Page {currentPage} of {totalPages} ({totalItems} total orders)
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-2 py-1 text-xs"
-                >
-                  Previous
-                </Button>
-                
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let page;
-                    if (totalPages <= 5) {
-                      page = i + 1;
-                    } else if (currentPage <= 3) {
-                      page = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      page = totalPages - 4 + i;
-                    } else {
-                      page = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <Button
-                        key={page}
-                        variant={page === currentPage ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="px-2 py-1 text-xs min-w-[30px]"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-2 py-1 text-xs"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
             </>
           )}
         </div>

@@ -1,6 +1,6 @@
 import Order from '../models/Order.js';
 import Customer from '../models/Customer.js';
-import Product from '../models/Product.js';
+import { Item } from '../models/Inventory.js';
 
 // Create new order
 const createOrder = async (req, res) => {
@@ -35,8 +35,8 @@ const createOrder = async (req, res) => {
         if (!product.productId) {
           errors[`products[${i}].productId`] = 'Product ID is required';
         } else {
-          // Check if product exists
-          const productExists = await Product.findById(product.productId);
+          // Check if product exists in inventory
+          const productExists = await Item.findById(product.productId);
           if (!productExists) {
             errors[`products[${i}].productId`] = 'Product not found';
           }
@@ -61,21 +61,40 @@ const createOrder = async (req, res) => {
     const orderProducts = [];
 
     for (const productItem of products) {
-      const product = await Product.findById(productItem.productId);
-      const itemTotal = product.price * productItem.quantity;
+      const product = await Item.findById(productItem.productId);
+      const itemTotal = product.salePrice * productItem.quantity;
       totalAmount += itemTotal;
       
       orderProducts.push({
         product: productItem.productId,
         quantity: productItem.quantity,
-        price: product.price,
+        price: product.salePrice,
         total: itemTotal
       });
     }
 
-    // Generate order code
-    const orderCount = await Order.countDocuments();
-    const orderCode = `ORD-${String(orderCount + 1).padStart(4, '0')}`;
+    // Generate unique order code
+    let orderCode;
+    let isUnique = false;
+    let attempts = 0;
+    
+    while (!isUnique && attempts < 10) {
+      const orderCount = await Order.countDocuments();
+      orderCode = `ORD-${String(orderCount + 1 + attempts).padStart(4, '0')}`;
+      
+      // Check if this code already exists
+      const existingOrder = await Order.findOne({ orderCode });
+      if (!existingOrder) {
+        isUnique = true;
+      } else {
+        attempts++;
+      }
+    }
+    
+    if (!isUnique) {
+      // Fallback to timestamp-based code if still not unique
+      orderCode = `ORD-${Date.now().toString().slice(-6)}`;
+    }
 
     // Create order
     const order = new Order({
@@ -117,7 +136,7 @@ const getOrders = async (req, res) => {
       startDate = '',
       endDate = '',
       customerId = '',
-      sortBy = 'orderDate',
+      sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
 
@@ -152,6 +171,8 @@ const getOrders = async (req, res) => {
     // Build sort query
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    console.log('Sort query:', sort, 'sortBy:', sortBy, 'sortOrder:', sortOrder);
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);

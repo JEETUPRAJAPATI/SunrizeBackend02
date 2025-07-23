@@ -90,10 +90,10 @@ export default function RecentOrders() {
                   {orders.map((order) => (
                     <tr key={order._id} className="hover:bg-muted/50">
                       <td className="px-4 py-3 text-sm font-medium text-foreground">
-                        {order.orderNumber}
+                        {order.orderCode}
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {order.customer?.customerName}
+                        {order.customer}
                       </td>
                       <td className="px-4 py-3">
                         <Badge className={getStatusColor(order.status)}>
@@ -101,7 +101,7 @@ export default function RecentOrders() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">
-                        ${order.totalAmount.toLocaleString()}
+                        ₹{order.amount?.toLocaleString() || '0'}
                       </td>
                     </tr>
                   ))}

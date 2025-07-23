@@ -141,15 +141,15 @@ export default function ViewItemModal({ isOpen, onClose, item }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <DollarSign className="h-5 w-5 text-orange-600" />
+                <BarChart3 className="h-5 w-5 text-orange-600" />
                 Pricing Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
-              <InfoRow icon={DollarSign} label="Standard Cost" value={item.stdCost} variant="currency" />
-              <InfoRow icon={DollarSign} label="Purchase Cost" value={item.purchaseCost} variant="currency" />
-              <InfoRow icon={DollarSign} label="Sale Price" value={item.salePrice} variant="currency" />
-              <InfoRow icon={DollarSign} label="MRP" value={item.mrp} variant="currency" />
+              <InfoRow icon={BarChart3} label="Standard Cost" value={item.stdCost} variant="currency" />
+              <InfoRow icon={BarChart3} label="Purchase Cost" value={item.purchaseCost} variant="currency" />
+              <InfoRow icon={BarChart3} label="Sale Price" value={item.salePrice} variant="currency" />
+              <InfoRow icon={BarChart3} label="MRP" value={item.mrp} variant="currency" />
               <InfoRow icon={BarChart3} label="GST %" value={`${item.gst || 0}%`} />
             </CardContent>
           </Card>

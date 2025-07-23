@@ -72,7 +72,7 @@ export default function SalesChart() {
               <YAxis 
                 className="fill-muted-foreground"
                 fontSize={12}
-                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                tickFormatter={(value) => `₹${value.toLocaleString()}`}
               />
               <Tooltip 
                 contentStyle={{
@@ -80,7 +80,7 @@ export default function SalesChart() {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '6px'
                 }}
-                formatter={(value) => [`$${value.toLocaleString()}`, 'Sales']}
+                formatter={(value) => [`₹${value.toLocaleString()}`, 'Sales']}
               />
               <Bar 
                 dataKey="sales" 

@@ -79,23 +79,24 @@ export const getItems = async (req, res) => {
       query.$expr = { $lte: ['$qty', '$minStock'] };
     }
 
-    // Sort options - prioritize newest items
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    if (sortBy !== 'createdAt') {
-      sortOptions.createdAt = -1;
-    }
-
-    // Default to createdAt descending for latest records first
-    if (!sortBy || sortBy === 'name') {
-      sortOptions.createdAt = -1;
+    // Sort options - always prioritize newest items first
+    let sortOptions = { createdAt: -1 }; // Default: newest first
+    
+    // Add secondary sorting if specified
+    if (sortBy && sortBy !== 'createdAt') {
       if (sortBy === 'name') {
         sortOptions.name = sortOrder === 'desc' ? -1 : 1;
+      } else if (sortBy === 'code') {
+        sortOptions.code = sortOrder === 'desc' ? -1 : 1;
+      } else if (sortBy === 'category') {
+        sortOptions.category = sortOrder === 'desc' ? -1 : 1;
+      } else if (sortBy === 'qty') {
+        sortOptions.qty = sortOrder === 'desc' ? -1 : 1;
       }
     }
 
     const items = await Item.find(query)
-      .sort({ createdAt: -1, ...sortOptions })
+      .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit));
 

@@ -529,7 +529,42 @@ The system supports two database configurations:
 - Removed duplicate fields and extra validation to match exact field specifications
 - Enhanced view modal to properly display all customer data according to specified field structure
 
-**Current Status**: Complete ERP system with Brand-Based Product Management integration and fully integrated Return/Damage API. Successfully implemented comprehensive product catalog system with MongoDB Brand and Product models, RESTful API endpoints with filtering/search/pagination, and modern ProductSelector component. The system now features 5 bakery brands (BakeHouse, SweetTreats, CookieKing, BreadBuddy, OvenFresh) with 30+ products including real product images. Sales Orders module now uses brand-based product selection instead of category-based system, providing better product organization and user experience. All features include proper JWT authentication, Excel import/export capabilities, role-based access control, and comprehensive form validation with toast notifications throughout the application.
+**Current Status**: Complete ERP system with Brand-Based Product Management integration and fully integrated Return/Damage API. Successfully implemented comprehensive product catalog system with MongoDB Brand and Product models, RESTful API endpoints with filtering/search/pagination, and modern ProductSelector component. The system now features 5 bakery brands (BakeHouse, SweetTreats, CookieKing, BreadBuddy, OvenFresh) with 30+ products including real product images. Sales Orders module uses brand-based product selection with familiar accordion UI interface. All features include proper JWT authentication, Excel import/export capabilities, role-based access control, and comprehensive form validation with toast notifications throughout the application.
+
+**January 23, 2025 - Fixed Sales Order Product Validation Issue**
+- Fixed critical "Product not found" validation error in sales order creation
+- Updated order controller to validate against Item model from Inventory instead of separate Product model
+- Orders now properly validate inventory items selected from the product selector
+- Changed price reference from product.price to product.salePrice to match inventory schema
+- Sales order creation now works correctly with inventory-based product selection
+
+**January 23, 2025 - Fixed Mobile Pagination and Order Sorting Issues**
+- Removed duplicate pagination controls that were appearing twice on mobile devices
+- Fixed order sorting to use 'createdAt' instead of 'orderDate' for true chronological order
+- Added proper sorting parameters (sortBy: 'createdAt', sortOrder: 'desc') to API calls
+- Fixed unique order code generation with retry logic and timestamp fallback
+- Latest records now display at the top of the order list based on actual creation time
+- Mobile pagination now shows single, properly responsive pagination controls
+
+**January 23, 2025 - Fixed Customer Table Scrolling Issue**
+- Added proper overflow handling to customer table container
+- Wrapped table in overflow-x-auto div for horizontal scrolling on mobile
+- Fixed table display issues by adding overflow-hidden to parent container
+- Customer table now properly scrolls horizontally on smaller screens while maintaining table structure
+
+**January 23, 2025 - Currency Localization for India Project**
+- Replaced all dollar sign ($) currency symbols with Indian Rupee (₹) symbols throughout the application
+- Updated SalesChart component Y-axis formatting and tooltip display to show ₹ instead of $
+- Fixed RecentOrders component to display order amounts with ₹ currency symbol
+- Modified Dashboard Revenue metric to display values with ₹ instead of $ for proper localization
+- Maintained all existing formatting functions while switching to appropriate currency for Indian market
+
+**January 23, 2025 - UI Consistency Restoration**
+- Restored original ProductSelector UI interface for orders to maintain familiar user experience
+- Kept brand-based accordion interface with expandable categories for product selection
+- Maintained all backend improvements while preserving expected UI design
+- Users can continue using the familiar brand-organized product selection workflow
+- Inventory management retains all modern improvements (pagination, direct action icons, validation)
 
 **January 21, 2025 - Fixed Customer Form Data Persistence Issues**
 - Resolved form data persistence issue where old customer data remained visible after successful form submission

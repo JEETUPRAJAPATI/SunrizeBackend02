@@ -119,6 +119,10 @@ app.use('/uploads', express.static('uploads'));
       app.use('/api/returns', returnRoutes);
       console.log('Return routes registered at /api/returns');
 
+      const dashboardRoutes = (await import('./routes/dashboardRoutes.js')).default;
+      app.use('/api/dashboard', dashboardRoutes);
+      console.log('Dashboard routes registered at /api/dashboard');
+
       // Customer seeding available via endpoint only
 
       // Seed routes without authentication (development only)

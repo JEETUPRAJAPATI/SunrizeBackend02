@@ -2,7 +2,7 @@ import Order from '../models/Order.js';
 import Manufacturing from '../models/Manufacturing.js';
 import Dispatch from '../models/Dispatch.js';
 import Sale from '../models/Sale.js';
-import { Inventory } from '../models/Inventory.js';
+import { Item } from '../models/Inventory.js';
 import { USER_ROLES } from '../../shared/schema.js';
 
 export const getDashboardMetrics = async (req, res) => {
@@ -188,11 +188,13 @@ export const getSalesChart = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const salesData = await Sale.aggregate([
+    // Use Order data since we have actual orders
+    const salesData = await Order.aggregate([
       {
         $match: {
           ...query,
-          createdAt: { $gte: startDate }
+          createdAt: { $gte: startDate },
+          status: { $in: ['Completed', 'Dispatched', 'Delivered'] } // Only completed sales
         }
       },
       {
@@ -224,7 +226,7 @@ export const getSalesChart = async (req, res) => {
       labels,
       datasets: [
         {
-          label: 'Sales ($)',
+          label: 'Sales (₹)',
           data: salesValues
         }
       ]
@@ -247,12 +249,23 @@ export const getRecentOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate('customer', 'customerName')
+      .populate('customer', 'customerName name')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .select('orderNumber customer status totalAmount createdAt');
+      .select('orderCode customer status totalAmount products createdAt orderDate');
 
-    res.json({ orders });
+    // Transform orders to match frontend expectations
+    const transformedOrders = orders.map(order => ({
+      _id: order._id,
+      orderCode: order.orderCode,
+      customer: order.customer?.customerName || order.customer?.name || 'Unknown Customer',
+      status: order.status || 'Pending',
+      amount: order.totalAmount || 0,
+      date: order.orderDate || order.createdAt,
+      items: Array.isArray(order.products) ? order.products.length : 0
+    }));
+
+    res.json({ orders: transformedOrders });
   } catch (error) {
     console.error('Get recent orders error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -273,10 +286,9 @@ export const getAlerts = async (req, res) => {
     const alerts = [];
 
     // Low Stock Alerts
-    const lowStockItems = await Inventory.find({
+    const lowStockItems = await Item.find({
       ...query,
-      $expr: { $lte: ['$currentStock', '$minStockLevel'] },
-      isActive: true
+      $expr: { $lte: ['$qty', '$minStock'] }
     }).limit(5);
 
     lowStockItems.forEach(item => {
@@ -284,7 +296,7 @@ export const getAlerts = async (req, res) => {
         type: 'warning',
         icon: 'fas fa-exclamation-triangle',
         title: 'Low Stock Alert',
-        message: `${item.itemName} below threshold`,
+        message: `${item.name} below threshold`,
         timestamp: new Date()
       });
     });
