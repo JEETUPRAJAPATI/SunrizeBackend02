@@ -180,7 +180,7 @@ const getOrders = async (req, res) => {
     // Get orders with population
     const orders = await Order.find(filter)
       .populate('customer', 'name email mobile')
-      .populate('products.product', 'name price brand')
+      .populate('products.product', 'name salePrice purchaseCost mrp brand category subCategory image')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -218,7 +218,7 @@ const getOrderById = async (req, res) => {
 
     const order = await Order.findById(id)
       .populate('customer', 'name email mobile address city state')
-      .populate('products.product', 'name price brand image');
+      .populate('products.product', 'name salePrice purchaseCost mrp brand category subCategory image');
 
     if (!order) {
       return res.status(404).json({
@@ -270,15 +270,15 @@ const updateOrder = async (req, res) => {
       const orderProducts = [];
 
       for (const productItem of products) {
-        const product = await Product.findById(productItem.productId);
+        const product = await Item.findById(productItem.productId);
         if (product) {
-          const itemTotal = product.price * productItem.quantity;
+          const itemTotal = product.salePrice * productItem.quantity;
           totalAmount += itemTotal;
           
           orderProducts.push({
             product: productItem.productId,
             quantity: productItem.quantity,
-            price: product.price,
+            price: product.salePrice,
             total: itemTotal
           });
         }
@@ -293,7 +293,7 @@ const updateOrder = async (req, res) => {
     // Populate the updated order
     const updatedOrder = await Order.findById(id)
       .populate('customer', 'name email mobile address city state')
-      .populate('products.product', 'name price brand image');
+      .populate('products.product', 'name salePrice purchaseCost mrp brand category subCategory image');
 
     res.json({
       success: true,

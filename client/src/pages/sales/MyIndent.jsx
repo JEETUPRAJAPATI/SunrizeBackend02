@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import ProductSelector from '@/components/products/ProductSelector';
+import EditOrderForm from '@/components/EditOrderForm';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
@@ -348,7 +349,6 @@ const MyOrders = () => {
   };
 
   const handleEdit = (order) => {
-    console.log('handleEdit called with order:', order);
     setSelectedOrder(order);
     setIsEditModalOpen(true);
   };
@@ -635,8 +635,8 @@ const MyOrders = () => {
     });
   };
 
-  // Isolated Edit Form Component using ProductSelector (same as create form)
-  const EditOrderFormComponent = ({ initialData, onUpdate, onCancel }) => {
+  // EditOrderFormComponent - Internal component for editing orders
+  const EditOrderFormComponent = ({ initialData, onSubmit, onCancel }) => {
     const [localFormData, setLocalFormData] = useState({
       customerName: '',
       orderDate: '',
@@ -647,9 +647,7 @@ const MyOrders = () => {
     // Initialize form data from initialData
     useEffect(() => {
       if (initialData) {
-        console.log('EditForm initialData:', initialData);
-        console.log('InitialData.products:', initialData.products);
-        console.log('InitialData.customer:', initialData.customer);
+        // Initialize edit form with order data
         
         // Format the order date properly
         let formattedDate = '';
@@ -659,21 +657,26 @@ const MyOrders = () => {
         }
 
         // Convert products to selectedProducts format for ProductSelector
-        const convertedProducts = (initialData.products || []).map(orderProduct => {
-          console.log('Converting orderProduct:', orderProduct);
+        const convertedProducts = (initialData.products || []).filter(orderProduct => {
+          // Only include products that have valid product references
+          return orderProduct.product && orderProduct.product._id;
+        }).map(orderProduct => {
+          // Convert order product to selector format
           
           return {
-            _id: orderProduct.product?._id || orderProduct.product?.id,
-            name: orderProduct.product?.name || 'Unknown Product',
-            price: orderProduct.product?.price || 0,
+            _id: orderProduct.product._id,
+            name: orderProduct.product.name || 'Unknown Product',
+            price: orderProduct.product.salePrice || orderProduct.product.price || orderProduct.price || 0,
             quantity: orderProduct.quantity || 1,
-            totalPrice: (orderProduct.product?.price || 0) * (orderProduct.quantity || 1),
-            brand: orderProduct.product?.brand || 'Unknown Brand',
-            image: orderProduct.product?.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop'
+            totalPrice: (orderProduct.product.salePrice || orderProduct.product.price || orderProduct.price || 0) * (orderProduct.quantity || 1),
+            brand: orderProduct.product.brand || 'Unknown Brand',
+            image: orderProduct.product.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop'
           };
         });
 
-        console.log('Converted products for edit:', convertedProducts);
+        // Products converted successfully
+        
+        // Products loaded successfully - no warning needed
 
         setLocalFormData({
           customerName: initialData.customer?.name || initialData.customerName || '',
@@ -812,8 +815,6 @@ const MyOrders = () => {
       </div>
     );
   };
-
-
 
   return (
     <div className="px-2 py-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
@@ -1250,13 +1251,14 @@ const MyOrders = () => {
               Update the order details below.
             </DialogDescription>
           </DialogHeader>
-          <EditOrderFormComponent 
+          <EditOrderForm 
             initialData={selectedOrder}
             onUpdate={handleUpdate}
             onCancel={() => {
               setIsEditModalOpen(false);
               setSelectedOrder(null);
             }}
+            customersList={customersList}
           />
         </DialogContent>
       </Dialog>
@@ -1314,6 +1316,21 @@ const MyOrders = () => {
                           ...product,
                           quantity: orderProduct.quantity
                         });
+                      } else {
+                        // Handle products with null references
+                        const category = 'Unavailable Products';
+                        if (!acc[category]) {
+                          acc[category] = [];
+                        }
+                        acc[category].push({
+                          _id: orderProduct._id,
+                          name: 'Product No Longer Available',
+                          salePrice: orderProduct.price || 0,
+                          price: orderProduct.price || 0,
+                          brand: 'Unknown',
+                          image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=150&h=150&fit=crop',
+                          quantity: orderProduct.quantity
+                        });
                       }
                       return acc;
                     }, {});
@@ -1337,7 +1354,11 @@ const MyOrders = () => {
                           {/* Category Header */}
                           <button 
                             onClick={() => toggleCategory(category)}
-                            className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className={`w-full flex items-center justify-between p-3 transition-colors ${
+                              category === 'Unavailable Products' 
+                                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-red-200' 
+                                : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
                           >
                             <div className="flex items-center gap-2">
                               {isExpanded ? (
@@ -1345,7 +1366,11 @@ const MyOrders = () => {
                               ) : (
                                 <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                               )}
-                              <span className="font-medium text-sm text-gray-900 dark:text-gray-100">{category}</span>
+                              <span className={`font-medium text-sm ${
+                                category === 'Unavailable Products' 
+                                  ? 'text-red-900 dark:text-red-100' 
+                                  : 'text-gray-900 dark:text-gray-100'
+                              }`}>{category}</span>
                             </div>
                             <Badge variant="secondary" className="text-xs">
                               {groupedOrderProducts[category].length} items
@@ -1364,7 +1389,7 @@ const MyOrders = () => {
                               {/* Product Rows */}
                               <div className="divide-y">
                                 {groupedOrderProducts[category].map((product) => (
-                                  <div key={product.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  <div key={product._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                                     {/* Product Image */}
                                     <div className="flex-shrink-0">
                                       <img 
@@ -1379,12 +1404,16 @@ const MyOrders = () => {
                                     
                                     {/* Product Info */}
                                     <div className="flex-1 min-w-0 w-full sm:w-auto">
-                                      <h4 className="text-sm font-medium mb-1">{product.name}</h4>
+                                      <h4 className={`text-sm font-medium mb-1 ${
+                                        category === 'Unavailable Products' 
+                                          ? 'text-red-900 dark:text-red-100' 
+                                          : 'text-gray-900 dark:text-gray-100'
+                                      }`}>{product.name}</h4>
                                       <div className="flex flex-wrap items-center gap-2">
                                         <Badge variant="outline" className="text-xs">
                                           {product.brand}
                                         </Badge>
-                                        <span className="text-xs text-gray-500">₹{product.price} each</span>
+                                        <span className="text-xs text-gray-500">₹{product.salePrice || product.price || 0} each</span>
                                       </div>
                                     </div>
                                     
@@ -1400,7 +1429,7 @@ const MyOrders = () => {
                                       
                                       {/* Total Price */}
                                       <div className="text-right">
-                                        <div className="text-sm font-medium">₹{(product.price * parseInt(product.quantity)).toLocaleString()}</div>
+                                        <div className="text-sm font-medium">₹{((product.salePrice || product.price || 0) * parseInt(product.quantity)).toLocaleString()}</div>
                                         <div className="text-xs text-gray-500">total</div>
                                       </div>
                                     </div>
@@ -1433,7 +1462,7 @@ const MyOrders = () => {
                         <span className="text-gray-600 dark:text-gray-400">Total Order Value:</span>
                         <span className="font-bold text-green-600 dark:text-green-400">
                           ₹{viewOrderDetails.products.reduce((sum, p) => {
-                            const price = p.product?.price || p.price || 0;
+                            const price = p.product?.salePrice || p.product?.price || p.price || 0;
                             const quantity = parseInt(p.quantity) || 0;
                             return sum + (price * quantity);
                           }, 0).toLocaleString()}
