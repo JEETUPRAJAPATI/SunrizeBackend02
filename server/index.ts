@@ -88,6 +88,55 @@ app.use('/uploads', express.static('uploads'));
       res.sendFile(path.join(process.cwd(), 'test-profile.html'));
     });
 
+    // Fix Sales permissions endpoint (development only - no auth required)
+    app.get('/api/fix-sales-permissions', async (req, res) => {
+      try {
+        const User = (await import('./models/User.js')).default;
+        
+        const result = await User.updateMany(
+          { role: 'Sales' },
+          {
+            $set: {
+              'permissions.modules': [
+                {
+                  name: 'sales',
+                  dashboard: true,
+                  features: [
+                    { key: 'salesDashboard', view: true, add: true, edit: true, delete: true, alter: true },
+                    { key: 'orders', view: true, add: true, edit: true, delete: true, alter: true },
+                    { key: 'myCustomers', view: true, add: true, edit: true, delete: true, alter: true },
+                    { key: 'myDeliveries', view: true, add: false, edit: false, delete: false, alter: false },
+                    { key: 'myInvoices', view: true, add: false, edit: false, delete: false, alter: false },
+                    { key: 'refundReturn', view: true, add: true, edit: true, delete: true, alter: true }
+                  ]
+                },
+                {
+                  name: 'inventory',
+                  dashboard: false,
+                  features: [
+                    { key: 'items', view: true, add: false, edit: false, delete: false, alter: false }
+                  ]
+                }
+              ]
+            }
+          }
+        );
+
+        res.json({
+          success: true,
+          message: 'Sales permissions updated successfully',
+          result
+        });
+      } catch (error) {
+        console.error('Error fixing sales permissions:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Error fixing sales permissions',
+          error: error.message
+        });
+      }
+    });
+
     // STEP 2: Register API routes DIRECTLY
     try {
       const authRoutes = (await import('./auth-routes.js')).default;
@@ -122,6 +171,8 @@ app.use('/uploads', express.static('uploads'));
       const dashboardRoutes = (await import('./routes/dashboardRoutes.js')).default;
       app.use('/api/dashboard', dashboardRoutes);
       console.log('Dashboard routes registered at /api/dashboard');
+
+
 
       // Customer seeding available via endpoint only
 

@@ -9,6 +9,12 @@ const checkInventoryPermission = (user, action) => {
   if (user.role === 'Super User') {
     return true;
   }
+  
+  // Allow Sales users to view items for order creation
+  if (user.role === 'Sales' && action === 'view') {
+    return true;
+  }
+  
   return user.permissions?.Inventory?.[action] === true;
 };
 

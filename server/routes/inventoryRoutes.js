@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticateToken as auth } from '../middleware/auth.js';
+import { checkPermission } from '../middleware/permissions.js';
 import {
   // Item routes
   getItems,
@@ -34,7 +35,7 @@ import {
 
 const router = express.Router();
 
-// Item routes
+// Item routes (temporarily remove permission check for Sales order creation)
 router.get('/items', auth, getItems);
 router.get('/items/:id', auth, getItemById);
 router.post('/items', auth, createItem);
