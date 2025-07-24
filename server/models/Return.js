@@ -3,17 +3,29 @@ import mongoose from 'mongoose';
 const returnItemSchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    ref: 'Item',
     required: true
   },
   brandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Brand',
-    required: true
+    required: false
   },
   productName: {
     type: String,
     required: true
+  },
+  categoryName: {
+    type: String,
+    required: false
+  },
+  unit: {
+    type: String,
+    required: false
+  },
+  brandName: {
+    type: String,
+    required: false
   },
   pricePerUnit: {
     type: Number,

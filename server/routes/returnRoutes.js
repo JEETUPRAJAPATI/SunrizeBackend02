@@ -43,8 +43,7 @@ const createReturnValidation = [
     .withMessage('Invalid product ID'),
   
   body('items.*.brandId')
-    .notEmpty()
-    .withMessage('Brand ID is required')
+    .optional()
     .isMongoId()
     .withMessage('Invalid brand ID'),
   

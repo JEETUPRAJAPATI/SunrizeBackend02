@@ -2,6 +2,7 @@ import Return from '../models/Return.js';
 import Customer from '../models/Customer.js';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
+import { Item } from '../models/Inventory.js';
 import { validationResult } from 'express-validator';
 
 // Get all returns with filtering and pagination
@@ -47,10 +48,10 @@ export const getAllReturns = async (req, res) => {
     // Get total count for pagination
     const total = await Return.countDocuments(filter);
     
-    // Get returns with population
+    // Get returns with population (use Item model for productId)
     const returns = await Return.find(filter)
       .populate('customerId', 'name email mobile')
-      .populate('items.productId', 'name price image')
+      .populate('items.productId', 'name salePrice stdCost image category', 'Item')
       .populate('items.brandId', 'name')
       .populate('createdBy', 'username fullName')
       .populate('updatedBy', 'username fullName')
@@ -84,7 +85,7 @@ export const getReturnById = async (req, res) => {
   try {
     const returnDoc = await Return.findById(req.params.id)
       .populate('customerId', 'name email mobile address')
-      .populate('items.productId', 'name price image description')
+      .populate('items.productId', 'name salePrice stdCost image description category', 'Item')
       .populate('items.brandId', 'name description')
       .populate('createdBy', 'username fullName')
       .populate('updatedBy', 'username fullName');
@@ -135,22 +136,25 @@ export const createReturn = async (req, res) => {
       });
     }
     
-    // Verify all products and brands exist
+    // Verify all inventory items exist
     for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
+      const inventoryItem = await Item.findById(item.productId);
+      if (!inventoryItem) {
         return res.status(404).json({
           success: false,
-          message: `Product not found: ${item.productName}`
+          message: `Inventory item not found: ${item.productName}`
         });
       }
       
-      const brand = await Brand.findById(item.brandId);
-      if (!brand) {
-        return res.status(404).json({
-          success: false,
-          message: `Brand not found for product: ${item.productName}`
-        });
+      // Optional: Check if brandId is provided and validate it
+      if (item.brandId) {
+        const brand = await Brand.findById(item.brandId);
+        if (!brand) {
+          return res.status(404).json({
+            success: false,
+            message: `Brand not found for item: ${item.productName}`
+          });
+        }
       }
     }
     
@@ -168,10 +172,10 @@ export const createReturn = async (req, res) => {
     
     await returnDoc.save();
     
-    // Populate the created return
+    // Populate the created return (use Item model for productId)
     await returnDoc.populate([
       { path: 'customerId', select: 'name email mobile' },
-      { path: 'items.productId', select: 'name price image' },
+      { path: 'items.productId', select: 'name salePrice stdCost image category', model: 'Item' },
       { path: 'items.brandId', select: 'name' },
       { path: 'createdBy', select: 'username fullName' }
     ]);
@@ -241,10 +245,10 @@ export const updateReturn = async (req, res) => {
     
     await returnDoc.save();
     
-    // Populate the updated return
+    // Populate the updated return (use Item model for productId)
     await returnDoc.populate([
       { path: 'customerId', select: 'name email mobile' },
-      { path: 'items.productId', select: 'name price image' },
+      { path: 'items.productId', select: 'name salePrice stdCost image category', model: 'Item' },
       { path: 'items.brandId', select: 'name' },
       { path: 'updatedBy', select: 'username fullName' }
     ]);
