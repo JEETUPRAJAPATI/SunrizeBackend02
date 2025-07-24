@@ -77,9 +77,22 @@ const ProductSelector = React.memo(({
     return brandsSet;
   }, [selectedProducts]);
 
+  // Keep brands with quantities expanded automatically
+  React.useEffect(() => {
+    setExpandedBrands(prev => {
+      const newExpanded = { ...prev };
+      brandsWithQuantities.forEach(brand => {
+        newExpanded[brand] = true;
+      });
+      return newExpanded;
+    });
+  }, [brandsWithQuantities]);
+
   const toggleBrandExpansion = (brandName) => {
     setExpandedBrands(prev => {
       const isCurrentlyExpanded = prev[brandName];
+      const hasQuantities = brandsWithQuantities.has(brandName);
+      
       const newExpanded = {};
       
       // Always keep brands with quantities open
@@ -87,12 +100,16 @@ const ProductSelector = React.memo(({
         newExpanded[brand] = true;
       });
       
-      // Accordion behavior: if clicked brand is not currently expanded, open it and close all others
-      if (!isCurrentlyExpanded) {
-        newExpanded[brandName] = true;
+      // Accordion behavior for brands without quantities
+      if (!hasQuantities) {
+        if (isCurrentlyExpanded) {
+          // If currently expanded and no quantities, close it
+          // newExpanded already has brands with quantities, so we don't add this brand
+        } else {
+          // If not expanded, open it (and others without quantities will be closed)
+          newExpanded[brandName] = true;
+        }
       }
-      // If clicking on expanded brand with no quantities, allow it to close
-      // (brands with quantities stay open due to the loop above)
       
       return newExpanded;
     });
@@ -299,7 +316,7 @@ const ProductSelector = React.memo(({
                             <p className="text-xs text-gray-400">{product.unit}</p>
                           </div>
 
-                          <div className="w-20">
+                          <div className="w-20" onClick={(e) => e.stopPropagation()}>
                             <Input
                               type="number"
                               min="0"
@@ -322,17 +339,20 @@ const ProductSelector = React.memo(({
                                   handleQuantityUpdate(product._id, e.target.value);
                                 }
                               }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
                               onFocus={(e) => {
+                                e.stopPropagation();
+                                e.target.placeholder = '';
+                              }}
+                              onBlur={(e) => {
+                                e.stopPropagation();
+                                if (!e.target.value) {
+                                  e.target.placeholder = product.stock > 0 ? "0" : "Out of Stock";
+                                }
+                              }}
+                              onClick={(e) => {
                                 e.stopPropagation();
                               }}
                               onKeyDown={(e) => {
-                                e.stopPropagation();
-                              }}
-                              onInput={(e) => {
                                 e.stopPropagation();
                               }}
                               className={`w-full text-center text-sm h-8 ${

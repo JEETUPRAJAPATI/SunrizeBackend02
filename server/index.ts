@@ -172,6 +172,10 @@ app.use('/uploads', express.static('uploads'));
       app.use('/api/dashboard', dashboardRoutes);
       console.log('Dashboard routes registered at /api/dashboard');
 
+      const notificationRoutes = (await import('./routes/notificationRoutes.js')).default;
+      app.use('/api', notificationRoutes);
+      console.log('Notification routes registered at /api');
+
 
 
       // Customer seeding available via endpoint only

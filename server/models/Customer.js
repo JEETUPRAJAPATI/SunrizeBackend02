@@ -71,10 +71,9 @@ const customerSchema = new mongoose.Schema({
     validate: {
       validator: function(v) {
         if (!v) return true; // Optional field
-        // GST format: 2 digits (state) + 10 alphanumeric + 1 letter + 1 digit + 1 letter + 1 digit
-        return /^[0-9]{2}[A-Z0-9]{10}[A-Z][0-9][A-Z][0-9]$/i.test(v) && v.length === 15;
+        return v.length === 15; // Just check length
       },
-      message: 'GSTIN must be in valid 15-character GST format (e.g., 22AAAAA0000A1Z5)'
+      message: 'GSTIN must be exactly 15 characters'
     }
   },
   salesContact: {

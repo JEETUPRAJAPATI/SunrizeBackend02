@@ -2,6 +2,7 @@ import { Item, Category, CustomerCategory } from '../models/Inventory.js';
 import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { USER_ROLES } from '../../shared/schema.js';
+import notificationService from '../services/notificationService.js';
 
 // Helper function to check inventory permissions
 const checkInventoryPermission = (user, action) => {
@@ -217,6 +218,18 @@ export const createItem = async (req, res) => {
     
     const item = await Item.create(sanitizedData);
     console.log('Item saved successfully:', item);
+
+    // Trigger notification for new inventory item
+    try {
+      await notificationService.triggerInventoryNotification(item, 'created');
+      
+      // Check for low stock alert
+      if (item.qty <= (item.minStock || 10)) {
+        await notificationService.triggerLowStockNotification(item);
+      }
+    } catch (notificationError) {
+      console.error('Failed to send inventory notification:', notificationError);
+    }
 
     res.status(201).json({
       success: true,

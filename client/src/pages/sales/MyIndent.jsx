@@ -976,50 +976,7 @@ const MyOrders = () => {
                         <Edit className="h-3 w-3" />
                       </Button>
                     )}
-                    {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 w-6 p-0"
-                            disabled={statusUpdateMutation.isPending}
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusUpdate(order._id, 'Pending')}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <Clock className="h-3 w-3 text-yellow-500" />
-                            Pending
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusUpdate(order._id, 'Approved')}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <CheckCircle className="h-3 w-3 text-blue-500" />
-                            Approved
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusUpdate(order._id, 'Completed')}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <FileCheck className="h-3 w-3 text-green-500" />
-                            Completed
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusUpdate(order._id, 'Cancelled')}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <XCircle className="h-3 w-3 text-red-500" />
-                            Cancelled
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+
                     {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                       <Button 
                         variant="ghost" 
@@ -1109,50 +1066,6 @@ const MyOrders = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                        )}
-                        {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0"
-                                disabled={statusUpdateMutation.isPending}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(order._id, 'Pending')}
-                                className="flex items-center gap-2"
-                              >
-                                <Clock className="h-4 w-4 text-yellow-500" />
-                                Pending
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(order._id, 'Approved')}
-                                className="flex items-center gap-2"
-                              >
-                                <CheckCircle className="h-4 w-4 text-blue-500" />
-                                Approved
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(order._id, 'Completed')}
-                                className="flex items-center gap-2"
-                              >
-                                <FileCheck className="h-4 w-4 text-green-500" />
-                                Completed
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(order._id, 'Cancelled')}
-                                className="flex items-center gap-2"
-                              >
-                                <XCircle className="h-4 w-4 text-red-500" />
-                                Cancelled
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         )}
                         {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
                           <Button 

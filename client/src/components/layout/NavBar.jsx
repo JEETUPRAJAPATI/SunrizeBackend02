@@ -13,10 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { 
   Menu,
-  Bell,
-  Search,
   User,
   Settings,
   LogOut,
@@ -27,7 +26,6 @@ import {
 export default function NavBar({ onSidebarToggle }) {
   const { user, logout } = useAuth();
   const { companyLogo, companyName } = useSettings();
-  const [notifications] = useState(3);
 
 
 
@@ -81,28 +79,8 @@ export default function NavBar({ onSidebarToggle }) {
 
         {/* Right Section */}
         <div className="flex items-center space-x-3">
-          {/* Search */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <Search className="h-5 w-5" />
-          </Button>
-
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="relative text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <Bell className="h-5 w-5" />
-            {notifications > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {notifications}
-              </span>
-            )}
-          </Button>
+          <NotificationBell />
 
           {/* Theme Toggle */}
           <ThemeToggle />

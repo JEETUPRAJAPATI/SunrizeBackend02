@@ -529,7 +529,26 @@ The system supports two database configurations:
 - Removed duplicate fields and extra validation to match exact field specifications
 - Enhanced view modal to properly display all customer data according to specified field structure
 
-**Current Status**: Complete ERP system with Brand-Based Product Management integration and fully integrated Return/Damage API. Successfully implemented comprehensive product catalog system with MongoDB Brand and Product models, RESTful API endpoints with filtering/search/pagination, and modern ProductSelector component. The system now features 5 bakery brands (BakeHouse, SweetTreats, CookieKing, BreadBuddy, OvenFresh) with 30+ products including real product images. Sales Orders module uses brand-based product selection with familiar accordion UI interface. All features include proper JWT authentication, Excel import/export capabilities, role-based access control, and comprehensive form validation with toast notifications throughout the application.
+**Current Status**: Complete ERP system with Brand-Based Product Management integration, fully integrated Return/Damage API, and comprehensive real-time notification system. Successfully implemented comprehensive product catalog system with MongoDB Brand and Product models, RESTful API endpoints with filtering/search/pagination, and modern ProductSelector component. The system now features 5 bakery brands (BakeHouse, SweetTreats, CookieKing, BreadBuddy, OvenFresh) with 30+ products including real product images. Sales Orders module uses brand-based product selection with familiar accordion UI interface.
+
+**January 24, 2025 - Fixed GSTIN Validation and Enhanced Customer Details Display**
+- Fixed critical GSTIN validation issue by updating both Express validator and Mongoose schema validator to accept any valid 15-character GSTIN number
+- Removed status update dropdown functionality from Orders Actions menu (both mobile and desktop views) as requested
+- Enhanced Customer Details modal to display comprehensive information including Google Pin, Country, Designation, Category Note, and Sales Contact
+- Maintained existing UI design while resolving all backend validation issues
+- GSTIN numbers like "29AAOCR0147E1ZB" now validate correctly without restrictive regex patterns
+- All notification system features and sound alerts remain fully functional 
+
+**January 23, 2025 - Complete Real-Time Notification System Implementation**
+- Implemented comprehensive notification system with MongoDB storage and REST API endpoints
+- Added NotificationBell component with unread count display and dropdown functionality
+- Created full notifications page with filtering, pagination, and management features
+- Integrated role-based notification targeting (Super Admin gets all, Sales gets sales-only)
+- Implemented automatic notification triggers for orders, inventory, and customer creation
+- Added sound notification system using Web Audio API with multiple fallback methods
+- Fixed sound detection using polling-based unread count monitoring instead of Pusher events
+- Sound notifications confirmed working: "Notification sound played via Web Audio API"
+- All features include proper JWT authentication, Excel import/export capabilities, role-based access control, and comprehensive form validation with toast notifications throughout the application.
 
 **January 23, 2025 - Complete Edit Order Functionality Recreation**
 - Completely recreated edit order functionality removing all false warning messages about missing product references

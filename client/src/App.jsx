@@ -33,6 +33,7 @@ import SalesDashboard from "@/pages/SalesDashboard";
 import NewProductionPage from "@/pages/NewProductionPage";
 import ProductionHistoryPage from "@/pages/ProductionHistoryPage";
 import RoleBasedDashboard from "@/components/layout/RoleBasedDashboard";
+import NotificationsPage from "@/pages/NotificationsPage";
 function ProtectedRoute({ children, requiredRole = null }) {
   const { user, loading } = useAuth();
 
@@ -187,6 +188,11 @@ function Router() {
       <Route path="/profile">
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/notifications">
+        <ProtectedRoute>
+          <NotificationsPage />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

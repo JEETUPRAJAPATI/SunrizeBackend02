@@ -2,6 +2,7 @@ import Customer from '../models/Customer.js';
 import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { body, validationResult, query } from 'express-validator';
+import notificationService from '../services/notificationService.js';
 
 // Configure multer for file upload
 const upload = multer({ 
@@ -43,8 +44,8 @@ export const validateCustomer = [
   body('gstin')
     .optional()
     .custom((value) => {
-      if (value && (!/^[0-9]{2}[A-Z0-9]{10}[A-Z][0-9][A-Z][0-9]$/i.test(value) || value.length !== 15)) {
-        throw new Error('GSTIN must be in valid 15-character GST format (e.g., 22AAAAA0000A1Z5)');
+      if (value && value.length !== 15) {
+        throw new Error('GSTIN must be exactly 15 characters');
       }
       return true;
     }),
@@ -258,6 +259,13 @@ export const createCustomer = [
 
       const customer = new Customer(req.body);
       await customer.save();
+
+      // Trigger notification for new customer
+      try {
+        await notificationService.triggerCustomerNotification(customer);
+      } catch (notificationError) {
+        console.error('Failed to send customer notification:', notificationError);
+      }
 
       res.status(201).json({
         success: true,

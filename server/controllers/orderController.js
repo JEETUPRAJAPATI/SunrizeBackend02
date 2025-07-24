@@ -1,6 +1,7 @@
 import Order from '../models/Order.js';
 import Customer from '../models/Customer.js';
 import { Item } from '../models/Inventory.js';
+import notificationService from '../services/notificationService.js';
 
 // Create new order
 const createOrder = async (req, res) => {
@@ -108,6 +109,21 @@ const createOrder = async (req, res) => {
     });
 
     await order.save();
+
+    // Populate order with customer details for notification
+    await order.populate('customer', 'name email');
+
+    // Trigger notification for new order
+    try {
+      await notificationService.triggerOrderNotification({
+        _id: order._id,
+        orderCode: order.orderCode,
+        customerName: order.customer.name
+      });
+    } catch (notificationError) {
+      console.error('Failed to send order notification:', notificationError);
+      // Don't fail the order creation if notification fails
+    }
 
     res.status(201).json({
       status: true,

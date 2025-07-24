@@ -482,6 +482,22 @@ const MyCustomers = () => {
                   <p className="text-sm">{selectedCustomer.pin || 'N/A'}</p>
                 </div>
                 <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Google Pin</Label>
+                  <p className="text-sm">{selectedCustomer.googlePin || 'N/A'}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Country</Label>
+                  <p className="text-sm">{selectedCustomer.country || 'India'}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Designation</Label>
+                  <p className="text-sm">{selectedCustomer.designation || 'N/A'}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Category Note</Label>
+                  <p className="text-sm">{selectedCustomer.categoryNote || 'N/A'}</p>
+                </div>
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Sales Contact</Label>
                   <p className="text-sm">{selectedCustomer.salesContact || 'N/A'}</p>
                 </div>
