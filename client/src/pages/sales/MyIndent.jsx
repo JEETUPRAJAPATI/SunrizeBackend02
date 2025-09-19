@@ -14,16 +14,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import ProductSelector from '@/components/products/ProductSelector';
 import EditOrderForm from '@/components/EditOrderForm';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  Plus, 
-  RefreshCw, 
-  Eye, 
-  Edit, 
-  Trash2, 
+import {
+  Search,
+  Plus,
+  RefreshCw,
+  Eye,
+  Edit,
+  Trash2,
   MoreHorizontal,
   FileText,
   Calendar,
@@ -41,10 +42,10 @@ import {
 
 const MyOrders = () => {
   const { hasFeatureAccess, canPerformAction } = usePermissions();
-  
+
   // Check if user has access to orders feature (check sales.orders, sales.myIndent, and orders.indent)
   const hasOrdersAccess = hasFeatureAccess('sales', 'orders', 'view') || hasFeatureAccess('sales', 'myIndent', 'view') || hasFeatureAccess('orders', 'indent', 'view');
-  
+
   if (!hasOrdersAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -57,6 +58,8 @@ const MyOrders = () => {
   }
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -66,6 +69,7 @@ const MyOrders = () => {
   const [viewOrderDetails, setViewOrderDetails] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [customerFilterOpen, setCustomerFilterOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [productSearchOpen, setProductSearchOpen] = useState(false);
 
@@ -151,8 +155,8 @@ const MyOrders = () => {
   const handleQuantityChange = (productId, quantity) => {
     setFormData(prev => ({
       ...prev,
-      selectedProducts: prev.selectedProducts.map(product => 
-        product._id === productId 
+      selectedProducts: prev.selectedProducts.map(product =>
+        product._id === productId
           ? { ...product, quantity, totalPrice: product.price * quantity }
           : product
       )
@@ -167,12 +171,15 @@ const MyOrders = () => {
 
   // Fetch orders from API with pagination
   const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
-    queryKey: ['/api/orders', currentPage, itemsPerPage, searchTerm, statusFilter],
+    queryKey: ['/api/orders', currentPage, itemsPerPage, searchTerm, statusFilter, customerFilter, dateRange.from, dateRange.to],
     queryFn: () => orderApi.getAll({
       page: currentPage,
       limit: itemsPerPage,
       search: searchTerm,
       status: statusFilter === 'all' ? '' : statusFilter,
+      customerId: customerFilter === 'all' ? '' : customerFilter,
+      startDate: dateRange.from || '',
+      endDate: dateRange.to || '',
       sortBy: 'createdAt',
       sortOrder: 'desc'
     })
@@ -199,6 +206,16 @@ const MyOrders = () => {
 
   const handleStatusChange = (value) => {
     setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleCustomerChange = (value) => {
+    setCustomerFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
     setCurrentPage(1);
   };
 
@@ -256,15 +273,15 @@ const MyOrders = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.customerName.trim()) {
       errors.customerName = "Please select a customer";
     }
-    
+
     if (!formData.orderDate) {
       errors.orderDate = "Please select an order date";
     }
-    
+
     if (formData.selectedProducts.length === 0) {
       errors.selectedProducts = "Please select at least one product";
     } else {
@@ -274,7 +291,7 @@ const MyOrders = () => {
         errors.selectedProducts = "All products must have a valid quantity";
       }
     }
-    
+
     // Find customer ID by name
     if (formData.customerName.trim()) {
       const customer = customersList.find(c => c.name.toLowerCase() === formData.customerName.toLowerCase());
@@ -282,7 +299,7 @@ const MyOrders = () => {
         errors.customerName = "Please select a valid customer from the list";
       }
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -357,12 +374,12 @@ const MyOrders = () => {
     if (!editFormData.customerName || !editFormData.orderDate) {
       return;
     }
-    
+
     const validProducts = editFormData.products.filter(p => p.productId && p.quantity);
     if (validProducts.length === 0) {
       return;
     }
-    
+
     const totalQuantity = validProducts.reduce((sum, product) => sum + (parseInt(product.quantity) || 0), 0);
     const updatedOrder = {
       ...selectedOrder,
@@ -375,8 +392,8 @@ const MyOrders = () => {
       selectedProduct: validProducts[0] ? productsList.find(p => p.id === validProducts[0].productId)?.name : '',
       productQuantity: totalQuantity
     };
-    
-    const updatedOrders = orders.map(order => 
+
+    const updatedOrders = orders.map(order =>
       order.id === selectedOrder.id ? updatedOrder : order
     );
     setOrders(updatedOrders);
@@ -480,8 +497,8 @@ const MyOrders = () => {
                         onSelect={(currentValue) => {
                           const selectedCustomer = customersList.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
                           if (selectedCustomer) {
-                            setFormData({ 
-                              ...formData, 
+                            setFormData({
+                              ...formData,
                               customerName: selectedCustomer.name
                             });
                             // Clear error when customer is selected
@@ -491,9 +508,8 @@ const MyOrders = () => {
                         }}
                       >
                         <Check
-                          className={`mr-2 h-4 w-4 ${
-                            formData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
-                          }`}
+                          className={`mr-2 h-4 w-4 ${formData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
+                            }`}
                         />
                         {customer.name}
                       </CommandItem>
@@ -539,8 +555,8 @@ const MyOrders = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               setIsCreateModalOpen(false);
               resetForm();
@@ -549,7 +565,7 @@ const MyOrders = () => {
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleCreate}
             disabled={createOrderMutation.isPending || !formData.customerName || !formData.orderDate || formData.selectedProducts.length === 0}
             className="w-full sm:w-auto"
@@ -629,9 +645,9 @@ const MyOrders = () => {
       }))
     };
 
-    updateOrderMutation.mutate({ 
-      orderId: selectedOrder._id, 
-      orderData 
+    updateOrderMutation.mutate({
+      orderId: selectedOrder._id,
+      orderData
     });
   };
 
@@ -648,7 +664,7 @@ const MyOrders = () => {
     useEffect(() => {
       if (initialData) {
         // Initialize edit form with order data
-        
+
         // Format the order date properly
         let formattedDate = '';
         if (initialData.orderDate) {
@@ -662,7 +678,7 @@ const MyOrders = () => {
           return orderProduct.product && orderProduct.product._id;
         }).map(orderProduct => {
           // Convert order product to selector format
-          
+
           return {
             _id: orderProduct.product._id,
             name: orderProduct.product.name || 'Unknown Product',
@@ -675,7 +691,7 @@ const MyOrders = () => {
         });
 
         // Products converted successfully
-        
+
         // Products loaded successfully - no warning needed
 
         setLocalFormData({
@@ -704,8 +720,8 @@ const MyOrders = () => {
     const handleEditQuantityChange = (productId, quantity) => {
       setLocalFormData(prev => ({
         ...prev,
-        selectedProducts: prev.selectedProducts.map(product => 
-          product._id === productId 
+        selectedProducts: prev.selectedProducts.map(product =>
+          product._id === productId
             ? { ...product, quantity, totalPrice: product.price * quantity }
             : product
         )
@@ -721,7 +737,7 @@ const MyOrders = () => {
         });
         return;
       }
-      
+
       onUpdate({
         ...localFormData,
         remarks: '' // Add remarks field if needed
@@ -765,9 +781,8 @@ const MyOrders = () => {
                         }}
                       >
                         <Check
-                          className={`mr-2 h-4 w-4 ${
-                            localFormData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
-                          }`}
+                          className={`mr-2 h-4 w-4 ${localFormData.customerName?.toLowerCase() === customer.name.toLowerCase() ? "opacity-100" : "opacity-0"
+                            }`}
                         />
                         {customer.name}
                       </CommandItem>
@@ -797,14 +812,14 @@ const MyOrders = () => {
         />
 
         <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onCancel}
             className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleEditSubmit}
             disabled={!localFormData.customerName || !localFormData.orderDate || localFormData.selectedProducts.length === 0}
             className="w-full sm:w-auto"
@@ -828,16 +843,16 @@ const MyOrders = () => {
           </div>
           <div className="flex items-center space-x-2">
             {(canPerformAction('sales', 'orders', 'add') || canPerformAction('sales', 'myIndent', 'add') || canPerformAction('orders', 'indent', 'add')) && (
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2"
                 onClick={() => setIsCreateModalOpen(true)}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             )}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2"
               onClick={() => refetchOrders()}
             >
@@ -845,7 +860,7 @@ const MyOrders = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Desktop Layout */}
         <div className="hidden sm:flex sm:items-center sm:justify-between">
           <div className="flex items-center space-x-3">
@@ -855,8 +870,8 @@ const MyOrders = () => {
           </div>
           <div className="flex items-center space-x-3">
             {(canPerformAction('sales', 'orders', 'add') || canPerformAction('sales', 'myIndent', 'add') || canPerformAction('orders', 'indent', 'add')) && (
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 className="bg-white text-blue-600 hover:bg-blue-50 text-sm px-3 py-2"
                 onClick={() => setIsCreateModalOpen(true)}
               >
@@ -864,8 +879,8 @@ const MyOrders = () => {
                 <span>Create Order</span>
               </Button>
             )}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm px-3 py-2"
               onClick={() => refetchOrders()}
             >
@@ -880,41 +895,111 @@ const MyOrders = () => {
 
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6 mx-0 sm:mx-0">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+          {/* Search Bar - Takes available space */}
+          <div className="flex-1 sm:min-w-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9 w-full"
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Approved">Approved</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* Filter Controls - Fixed widths */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-3 sm:items-center sm:flex-shrink-0">
+            {/* Customer Filter */}
+            <Popover open={customerFilterOpen} onOpenChange={setCustomerFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={customerFilterOpen}
+                  className="w-full sm:w-48 h-9 justify-between text-sm"
+                >
+                  <span className="truncate">
+                    {customerFilter === 'all'
+                      ? "All Customers"
+                      : customersList.find(customer => customer._id === customerFilter)?.name || "Select customer..."
+                    }
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" side="bottom" align="start">
+                <Command>
+                  <CommandInput placeholder="Search customers..." />
+                  <CommandEmpty>No customer found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all"
+                      onSelect={() => {
+                        handleCustomerChange('all');
+                        setCustomerFilterOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={customerFilter === 'all' ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"}
+                      />
+                      All Customers
+                    </CommandItem>
+                    {customersList.map((customer) => (
+                      <CommandItem
+                        key={customer._id}
+                        value={customer.name}
+                        onSelect={() => {
+                          handleCustomerChange(customer._id);
+                          setCustomerFilterOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={customerFilter === customer._id ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"}
+                        />
+                        {customer.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {/* Date Range Filter */}
+            <DateRangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              placeholder="Select date range..."
+              size="sm"
+              className="w-full sm:w-64"
+            />
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-full sm:w-40 h-9">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Processing">Processing</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-lg p-3 sm:p-6 mx-0 sm:mx-0">
         <h3 className="text-lg font-medium mb-3 sm:mb-4 px-0 sm:px-0">Order List</h3>
-        
+
         {/* Mobile Card View */}
         <div className="block sm:hidden">
           {ordersLoading ? (
@@ -935,63 +1020,63 @@ const MyOrders = () => {
                 <span className="w-20 text-center">STATUS</span>
                 <span className="w-24 text-center">ACTIONS</span>
               </div>
-              
+
               {/* Mobile Cards */}
               <div className="space-y-0 border border-gray-200 dark:border-gray-700 border-t-0 rounded-b-lg overflow-hidden">
                 {orders.map((order, index) => (
-              <div key={order._id} className={`p-2 ${index !== orders.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''} bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700`}>
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 mb-1">
-                      {order.customer?.name || 'Unknown Customer'}
-                    </div>
-                    <div className="text-xs text-gray-500 font-mono mb-1">
-                      {order.orderCode || order._id}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(order.orderDate).toLocaleDateString()} • Qty: {order.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0}
-                    </div>
-                  </div>
-                  <div className="w-20 flex justify-center">
-                    <Badge variant={getStatusVariant(order.status)} className="text-xs">
-                      {order.status}
-                    </Badge>
-                  </div>
-                  <div className="w-24 flex justify-center items-center gap-0.5">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0"
-                      onClick={() => handleView(order)}
-                    >
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleEdit(order)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    )}
+                  <div key={order._id} className={`p-2 ${index !== orders.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''} bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700`}>
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100 mb-1">
+                          {order.customer?.name || 'Unknown Customer'}
+                        </div>
+                        <div className="text-xs text-gray-500 font-mono mb-1">
+                          {order.orderCode || order._id}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(order.orderDate).toLocaleDateString()} • Qty: {order.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0}
+                        </div>
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <Badge variant={getStatusVariant(order.status)} className="text-xs">
+                          {order.status}
+                        </Badge>
+                      </div>
+                      <div className="w-24 flex justify-center items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleView(order)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleEdit(order)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        )}
 
-                    {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                        onClick={() => handleDelete(order._id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                        {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(order._id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
 
             </>
@@ -1033,54 +1118,54 @@ const MyOrders = () => {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                <TableRow key={order._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <TableCell className="font-medium text-sm font-mono">{order.orderCode || order._id}</TableCell>
-                  <TableCell className="text-sm">
-                    <div className="font-medium">{order.customer?.name || 'Unknown Customer'}</div>
-                  </TableCell>
-                  <TableCell className="text-sm">{new Date(order.orderDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(order.status)} className="text-xs">
-                      {getStatusIcon(order.status)}
-                      <span className="ml-1">{order.status}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{order.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0}</TableCell>
-                  {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit') || canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleView(order)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleEdit(order)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(order._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                  <TableRow key={order._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <TableCell className="font-medium text-sm font-mono">{order.orderCode || order._id}</TableCell>
+                    <TableCell className="text-sm">
+                      <div className="font-medium">{order.customer?.name || 'Unknown Customer'}</div>
                     </TableCell>
-                  )}
-                </TableRow>
+                    <TableCell className="text-sm">{new Date(order.orderDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(order.status)} className="text-xs">
+                        {getStatusIcon(order.status)}
+                        <span className="ml-1">{order.status}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{order.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0}</TableCell>
+                    {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit') || canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleView(order)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {(canPerformAction('sales', 'orders', 'edit') || canPerformAction('sales', 'myIndent', 'edit') || canPerformAction('orders', 'indent', 'edit')) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleEdit(order)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {(canPerformAction('sales', 'orders', 'delete') || canPerformAction('sales', 'myIndent', 'delete') || canPerformAction('orders', 'indent', 'delete')) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(order._id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
@@ -1103,21 +1188,21 @@ const MyOrders = () => {
               >
                 Previous
               </Button>
-              
+
               {/* Page numbers */}
               <div className="flex items-center space-x-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(page => {
                     // Show first page, last page, current page, and pages around current
-                    return page === 1 || 
-                           page === totalPages || 
-                           Math.abs(page - currentPage) <= 1;
+                    return page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - currentPage) <= 1;
                   })
                   .map((page, index, array) => {
                     // Add ellipsis if there's a gap
                     const prevPage = array[index - 1];
                     const showEllipsis = prevPage && page - prevPage > 1;
-                    
+
                     return (
                       <div key={page}>
                         {showEllipsis && (
@@ -1164,7 +1249,7 @@ const MyOrders = () => {
               Update the order details below.
             </DialogDescription>
           </DialogHeader>
-          <EditOrderForm 
+          <EditOrderForm
             initialData={selectedOrder}
             onUpdate={handleUpdate}
             onCancel={() => {
@@ -1215,7 +1300,7 @@ const MyOrders = () => {
                     <Label className="text-base font-semibold text-gray-700 dark:text-gray-300">Selected Products by Category</Label>
                     <p className="text-sm text-gray-500 mt-1">Products ordered from our bakery categories</p>
                   </div>
-                  
+
                   {/* Group products by category */}
                   {(() => {
                     const groupedOrderProducts = viewOrderDetails.products.reduce((acc, orderProduct) => {
@@ -1265,13 +1350,12 @@ const MyOrders = () => {
                       return (
                         <div key={category} className="border rounded-lg mb-4 overflow-hidden">
                           {/* Category Header */}
-                          <button 
+                          <button
                             onClick={() => toggleCategory(category)}
-                            className={`w-full flex items-center justify-between p-3 transition-colors ${
-                              category === 'Unavailable Products' 
-                                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-red-200' 
-                                : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
+                            className={`w-full flex items-center justify-between p-3 transition-colors ${category === 'Unavailable Products'
+                              ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-red-200'
+                              : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
                           >
                             <div className="flex items-center gap-2">
                               {isExpanded ? (
@@ -1279,17 +1363,16 @@ const MyOrders = () => {
                               ) : (
                                 <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                               )}
-                              <span className={`font-medium text-sm ${
-                                category === 'Unavailable Products' 
-                                  ? 'text-red-900 dark:text-red-100' 
-                                  : 'text-gray-900 dark:text-gray-100'
-                              }`}>{category}</span>
+                              <span className={`font-medium text-sm ${category === 'Unavailable Products'
+                                ? 'text-red-900 dark:text-red-100'
+                                : 'text-gray-900 dark:text-gray-100'
+                                }`}>{category}</span>
                             </div>
                             <Badge variant="secondary" className="text-xs">
                               {groupedOrderProducts[category].length} items
                             </Badge>
                           </button>
-                          
+
                           {/* Category Products - Collapsible */}
                           {isExpanded && (
                             <div className="border-t">
@@ -1298,15 +1381,15 @@ const MyOrders = () => {
                                 <span>ITEM NAME</span>
                                 <span className="w-16 text-center">QUANTITY</span>
                               </div>
-                              
+
                               {/* Product Rows */}
                               <div className="divide-y">
                                 {groupedOrderProducts[category].map((product) => (
                                   <div key={product._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                                     {/* Product Image */}
                                     <div className="flex-shrink-0">
-                                      <img 
-                                        src={product.image} 
+                                      <img
+                                        src={product.image}
                                         alt={product.name}
                                         className="w-12 h-12 sm:w-10 sm:h-10 rounded-lg object-cover"
                                         onError={(e) => {
@@ -1314,14 +1397,13 @@ const MyOrders = () => {
                                         }}
                                       />
                                     </div>
-                                    
+
                                     {/* Product Info */}
                                     <div className="flex-1 min-w-0 w-full sm:w-auto">
-                                      <h4 className={`text-sm font-medium mb-1 ${
-                                        category === 'Unavailable Products' 
-                                          ? 'text-red-900 dark:text-red-100' 
-                                          : 'text-gray-900 dark:text-gray-100'
-                                      }`}>{product.name}</h4>
+                                      <h4 className={`text-sm font-medium mb-1 ${category === 'Unavailable Products'
+                                        ? 'text-red-900 dark:text-red-100'
+                                        : 'text-gray-900 dark:text-gray-100'
+                                        }`}>{product.name}</h4>
                                       <div className="flex flex-wrap items-center gap-2">
                                         <Badge variant="outline" className="text-xs">
                                           {product.brand}
@@ -1329,7 +1411,7 @@ const MyOrders = () => {
                                         <span className="text-xs text-gray-500">₹{product.salePrice || product.price || 0} each</span>
                                       </div>
                                     </div>
-                                    
+
                                     {/* Quantity and Total - Mobile/Desktop responsive */}
                                     <div className="flex items-center justify-between w-full sm:w-auto sm:gap-4">
                                       {/* Quantity Display */}
@@ -1339,7 +1421,7 @@ const MyOrders = () => {
                                           <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{product.quantity}</span>
                                         </div>
                                       </div>
-                                      
+
                                       {/* Total Price */}
                                       <div className="text-right">
                                         <div className="text-sm font-medium">₹{((product.salePrice || product.price || 0) * parseInt(product.quantity)).toLocaleString()}</div>
@@ -1355,7 +1437,7 @@ const MyOrders = () => {
                       );
                     });
                   })()}
-                  
+
                   {/* Order Summary */}
                   <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex justify-between items-center">

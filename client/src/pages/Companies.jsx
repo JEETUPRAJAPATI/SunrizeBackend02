@@ -335,7 +335,7 @@ export default function Companies() {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Company
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDelete(company)}
                               className="text-red-600"
                             >

@@ -22,18 +22,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Shield, 
-  Users, 
-  Plus, 
-  Edit, 
+import {
+  Shield,
+  Users,
+  Plus,
+  Edit,
   Trash2,
   Eye,
   UserPlus,
@@ -251,7 +251,7 @@ export default function RolePermissionManagement() {
       role: '',
       unit: '',
       isActive: true,
-      permissions: { 
+      permissions: {
         role: '',
         unit: '',
         canAccessAllUnits: false,
@@ -294,7 +294,7 @@ export default function RolePermissionManagement() {
     if (!updateData.password) {
       delete updateData.password;
     }
-    
+
     updateUserMutation.mutate({ id: selectedUser._id, ...updateData });
   };
 
@@ -331,7 +331,7 @@ export default function RolePermissionManagement() {
   // Handle password form submission
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
       showValidationToast([
         { path: ['newPassword'], message: 'New password is required' },
@@ -339,24 +339,24 @@ export default function RolePermissionManagement() {
       ], 'Password Update');
       return;
     }
-    
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       showValidationToast([
         { path: ['confirmPassword'], message: 'Passwords do not match' }
       ], 'Password Update');
       return;
     }
-    
+
     if (passwordForm.newPassword.length < 6) {
       showValidationToast([
         { path: ['newPassword'], message: 'Password must be at least 6 characters long' }
       ], 'Password Update');
       return;
     }
-    
-    updatePasswordMutation.mutate({ 
-      userId: selectedUser._id, 
-      newPassword: passwordForm.newPassword 
+
+    updatePasswordMutation.mutate({
+      userId: selectedUser._id,
+      newPassword: passwordForm.newPassword
     });
   };
 
@@ -382,7 +382,7 @@ export default function RolePermissionManagement() {
       canAccessAllUnits: role === 'Super User',
       modules: getDefaultModulesForRole(role)
     };
-    
+
     setFormData(prevData => ({
       ...prevData,
       role: role,
@@ -426,18 +426,18 @@ export default function RolePermissionManagement() {
   };
 
   const updateModulePermission = (moduleName, enabled) => {
-    const updatedModules = enabled 
+    const updatedModules = enabled
       ? [...formData.permissions.modules, {
-          name: moduleName,
-          dashboard: true,
-          features: MODULES.find(m => m.name === moduleName)?.features.map(f => ({
-            key: f.key,
-            view: false,
-            add: false,
-            edit: false,
-            delete: false
-          })) || []
-        }]
+        name: moduleName,
+        dashboard: true,
+        features: MODULES.find(m => m.name === moduleName)?.features.map(f => ({
+          key: f.key,
+          view: false,
+          add: false,
+          edit: false,
+          delete: false
+        })) || []
+      }]
       : formData.permissions.modules.filter(m => m.name !== moduleName);
 
     setFormData({
@@ -549,7 +549,7 @@ export default function RolePermissionManagement() {
                 Configure user details and module-level permissions
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-6">
               {/* Basic Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -558,7 +558,7 @@ export default function RolePermissionManagement() {
                   <Input
                     id="username"
                     value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="jeet"
                   />
                 </div>
@@ -568,7 +568,7 @@ export default function RolePermissionManagement() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="jeet@gmail.com"
                   />
                 </div>
@@ -577,7 +577,7 @@ export default function RolePermissionManagement() {
                   <Input
                     id="fullName"
                     value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     placeholder="jeetu prajapati"
                   />
                 </div>
@@ -590,15 +590,15 @@ export default function RolePermissionManagement() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label htmlFor="role">Role</Label>
-                  <Select 
-                    value={formData.role} 
+                  <Select
+                    value={formData.role}
                     onValueChange={(value) => {
-                      setFormData({...formData, role: value});
+                      setFormData({ ...formData, role: value });
                       setRoleDefaultPermissions(value);
                     }}
                   >
@@ -661,7 +661,7 @@ export default function RolePermissionManagement() {
                             </div>
                           </div>
                         </CardHeader>
-                        
+
                         {moduleEnabled && (
                           <CardContent className="pt-0">
                             <div className="space-y-3">
@@ -684,12 +684,12 @@ export default function RolePermissionManagement() {
                                   <span>Delete</span>
                                 </div>
                               </div>
-                              
+
                               {/* Mobile Header */}
                               <div className="lg:hidden text-sm font-medium text-center border-b pb-2">
                                 Module Permissions
                               </div>
-                              
+
                               {module.features.map((feature) => (
                                 <div key={feature.key}>
                                   {/* Desktop Layout */}
@@ -699,7 +699,7 @@ export default function RolePermissionManagement() {
                                       <div key={action} className="flex justify-center">
                                         <Switch
                                           checked={getFeaturePermission(module.name, feature.key, action)}
-                                          onCheckedChange={(checked) => 
+                                          onCheckedChange={(checked) =>
                                             updateFeaturePermission(module.name, feature.key, action, checked)
                                           }
                                           size="sm"
@@ -707,7 +707,7 @@ export default function RolePermissionManagement() {
                                       </div>
                                     ))}
                                   </div>
-                                  
+
                                   {/* Mobile Layout */}
                                   <div className="lg:hidden border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-3">
                                     <div className="font-medium text-sm mb-2">{feature.label}</div>
@@ -717,7 +717,7 @@ export default function RolePermissionManagement() {
                                           <span className="text-sm capitalize">{action}</span>
                                           <Switch
                                             checked={getFeaturePermission(module.name, feature.key, action)}
-                                            onCheckedChange={(checked) => 
+                                            onCheckedChange={(checked) =>
                                               updateFeaturePermission(module.name, feature.key, action, checked)
                                             }
                                             size="sm"
@@ -741,15 +741,15 @@ export default function RolePermissionManagement() {
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleCreateUser} 
+                <Button
+                  onClick={handleCreateUser}
                   disabled={createUserMutation.isPending || !formData.username || !formData.email || !formData.password || !formData.role}
                   className="w-full sm:w-auto"
                 >
                   {createUserMutation.isPending ? 'Creating...' : 'Create User'}
                 </Button>
               </div>
-              
+
 
             </div>
           </DialogContent>
@@ -899,7 +899,7 @@ export default function RolePermissionManagement() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   {/* Role and Status */}
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs">
@@ -909,7 +909,7 @@ export default function RolePermissionManagement() {
                       {user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  
+
                   {/* Module Permissions */}
                   <div>
                     <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -953,7 +953,7 @@ export default function RolePermissionManagement() {
               Update user details and module-level permissions
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -962,7 +962,7 @@ export default function RolePermissionManagement() {
                 <Input
                   id="edit-username"
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 />
               </div>
               <div>
@@ -971,7 +971,7 @@ export default function RolePermissionManagement() {
                   id="edit-email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
               <div>
@@ -979,7 +979,7 @@ export default function RolePermissionManagement() {
                 <Input
                   id="edit-fullName"
                   value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 />
               </div>
             </div>
@@ -991,13 +991,13 @@ export default function RolePermissionManagement() {
                   id="edit-password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
               <div>
                 <Label htmlFor="edit-role">Role</Label>
                 <Select value={formData.role} onValueChange={(value) => {
-                  setFormData({...formData, role: value});
+                  setFormData({ ...formData, role: value });
                 }}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1018,11 +1018,11 @@ export default function RolePermissionManagement() {
                 <Switch
                   id="edit-active"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                 />
                 <Label htmlFor="edit-active">Active</Label>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="edit-canAccessAllUnits"
@@ -1067,7 +1067,7 @@ export default function RolePermissionManagement() {
                           </div>
                         </div>
                       </CardHeader>
-                      
+
                       {moduleEnabled && (
                         <CardContent className="pt-0">
                           <div className="space-y-3">
@@ -1090,12 +1090,12 @@ export default function RolePermissionManagement() {
                                 <span>Delete</span>
                               </div>
                             </div>
-                            
+
                             {/* Mobile Header */}
                             <div className="lg:hidden text-sm font-medium text-center border-b pb-2">
                               Module Permissions
                             </div>
-                            
+
                             {module.features.map((feature) => (
                               <div key={feature.key}>
                                 {/* Desktop Layout */}
@@ -1105,7 +1105,7 @@ export default function RolePermissionManagement() {
                                     <div key={action} className="flex justify-center">
                                       <Switch
                                         checked={getFeaturePermission(module.name, feature.key, action)}
-                                        onCheckedChange={(checked) => 
+                                        onCheckedChange={(checked) =>
                                           updateFeaturePermission(module.name, feature.key, action, checked)
                                         }
                                         size="sm"
@@ -1113,7 +1113,7 @@ export default function RolePermissionManagement() {
                                     </div>
                                   ))}
                                 </div>
-                                
+
                                 {/* Mobile Layout */}
                                 <div className="lg:hidden border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-3">
                                   <div className="font-medium text-sm mb-2">{feature.label}</div>
@@ -1123,7 +1123,7 @@ export default function RolePermissionManagement() {
                                         <span className="text-sm capitalize">{action}</span>
                                         <Switch
                                           checked={getFeaturePermission(module.name, feature.key, action)}
-                                          onCheckedChange={(checked) => 
+                                          onCheckedChange={(checked) =>
                                             updateFeaturePermission(module.name, feature.key, action, checked)
                                           }
                                           size="sm"
@@ -1169,7 +1169,7 @@ export default function RolePermissionManagement() {
               <span className="text-sm text-gray-500">({selectedUser?.email})</span>
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
               <Label htmlFor="newPassword">New Password</Label>
@@ -1200,7 +1200,7 @@ export default function RolePermissionManagement() {
                 </Button>
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
@@ -1230,18 +1230,18 @@ export default function RolePermissionManagement() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsPasswordDialogOpen(false)}
                 className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={updatePasswordMutation.isPending}
                 className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
               >

@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  User, 
-  Calendar, 
-  Package, 
-  CheckCircle, 
-  Clock, 
+import {
+  User,
+  Calendar,
+  Package,
+  CheckCircle,
+  Clock,
   AlertTriangle,
   Eye,
   Plus,
@@ -149,7 +149,7 @@ const SalesDashboard = () => {
               </div>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={handleNewOrder}
             className="bg-white text-blue-600 hover:bg-gray-100 flex items-center gap-2"
           >
@@ -217,9 +217,9 @@ const SalesDashboard = () => {
               <Package className="h-5 w-5 text-red-500" />
               <CardTitle>Recent Orders</CardTitle>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleViewAll}
               className="flex items-center gap-2"
             >
@@ -251,7 +251,7 @@ const SalesDashboard = () => {
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{order.orderDate}</TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={getStatusBadgeVariant(order.statusColor)}
                         className="flex items-center gap-1 w-fit"
                       >
@@ -302,7 +302,7 @@ const SalesDashboard = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>
-                  <Badge 
+                  <Badge
                     variant={getStatusBadgeVariant(selectedOrder.statusColor)}
                     className="flex items-center gap-1 w-fit"
                   >
@@ -319,7 +319,7 @@ const SalesDashboard = () => {
                   <p className="text-sm font-medium">{selectedOrder.totalQuantity} units</p>
                 </div>
               </div>
-              
+
               <div className="mt-6 pt-4 border-t">
                 <h4 className="font-medium mb-2">Order Timeline</h4>
                 <div className="space-y-2 text-sm">
