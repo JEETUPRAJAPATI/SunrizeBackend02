@@ -48,13 +48,16 @@ import {
   Plus,
   Factory,
   TrendingUp,
-  Calendar,
-  User,
+  RefreshCcw,
   MoreHorizontal,
-  Eye,
   Edit,
   Trash2,
-  RefreshCcw,
+  Calendar,
+  User,
+  Building,
+  ChevronDown,
+  History,
+  Eye,
   Search,
   Filter,
 } from "lucide-react";
@@ -481,11 +484,30 @@ export default function NewProductionPage() {
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <Factory className="h-8 w-8 sm:h-10 sm:w-10" />
-              My Production
-            </h1>
-            <p className="text-blue-100 mt-2 text-sm sm:text-base">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                <Factory className="h-8 w-8 sm:h-10 sm:w-10" />
+                Production
+              </h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                    My Production <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48">
+                  <DropdownMenuItem onClick={() => window.location.href = '/production'}>
+                    <Factory className="mr-2 h-4 w-4" />
+                    My Production
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/production/history'}>
+                    <History className="mr-2 h-4 w-4" />
+                    Submission History
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <p className="text-blue-100 text-sm sm:text-base">
               Manage daily production operations and track performance
             </p>
           </div>

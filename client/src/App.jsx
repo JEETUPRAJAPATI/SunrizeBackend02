@@ -34,6 +34,11 @@ import NewProductionPage from "@/pages/NewProductionPage";
 import ProductionHistoryPage from "@/pages/ProductionHistoryPage";
 import RoleBasedDashboard from "@/components/layout/RoleBasedDashboard";
 import NotificationsPage from "@/pages/NotificationsPage";
+import UnitHeadDashboard from "@/pages/UnitHeadDashboard";
+import ProductionDashboard from "@/pages/ProductionDashboard";
+import PackingDashboard from "@/pages/PackingDashboard";
+import DispatchDashboard from "@/pages/DispatchDashboard";
+import AccountsDashboard from "@/pages/AccountsDashboard";
 function ProtectedRoute({ children, requiredRole = null }) {
   const { user, loading } = useAuth();
 
@@ -195,6 +200,34 @@ function Router() {
           <NotificationsPage />
         </ProtectedRoute>
       </Route>
+      
+      {/* Role-specific Dashboard routes */}
+      <Route path="/unit-head-dashboard">
+        <ProtectedRoute requiredRole="Unit Head">
+          <UnitHeadDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/production-dashboard">
+        <ProtectedRoute requiredRole="Production">
+          <ProductionDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/packing-dashboard">
+        <ProtectedRoute requiredRole="Packing">
+          <PackingDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dispatch-dashboard">
+        <ProtectedRoute requiredRole="Dispatch">
+          <DispatchDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/accounts-dashboard">
+        <ProtectedRoute requiredRole="Accounts">
+          <AccountsDashboard />
+        </ProtectedRoute>
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );

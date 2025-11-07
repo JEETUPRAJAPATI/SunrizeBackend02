@@ -31,11 +31,56 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
+  // Role-specific dashboards
+  {
+    label: 'Dashboard',
+    path: '/unit-head-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Dashboard',
+    path: '/production-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Production'
+  },
+  {
+    label: 'Dashboard',
+    path: '/packing-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Packing'
+  },
+  {
+    label: 'Dashboard',
+    path: '/dispatch-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Dispatch'
+  },
+  {
+    label: 'Dashboard',
+    path: '/sales-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Sales'
+  },
+  {
+    label: 'Dashboard',
+    path: '/accounts-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Accounts'
+  },
+  // Super User gets the main dashboard
   {
     label: 'Dashboard',
     path: '/dashboard',
     icon: LayoutDashboard,
-    module: 'dashboard'
+    module: 'dashboard',
+    roleRestriction: 'Super User'
   },
 
   {
@@ -51,7 +96,7 @@ const menuItems = [
     module: 'production',
     roleRestriction: 'Production',
     submodules: [
-      { label: 'My Production', path: '/production', feature: 'myProduction' },
+      { label: 'My Production', path: '/production', feature: 'todaysIndents' },
       { label: 'Submission History', path: '/production/history', feature: 'submissionHistory' }
     ]
   },
@@ -71,7 +116,6 @@ const menuItems = [
     icon: TrendingUp,
     module: 'sales',
     submodules: [
-      { label: 'Sales Dashboard', path: '/sales-dashboard', feature: 'salesDashboard' },
       { label: 'My Orders', path: '/sales/orders', feature: 'orders' },
       { label: 'My Customers', path: '/sales/my-customers', feature: 'myCustomers' },
       { label: 'My Dispatches', path: '/sales/my-deliveries', feature: 'myDeliveries' },
@@ -149,8 +193,21 @@ export default function Sidebar({ isOpen, onClose }) {
     }));
   };
 
-  // Filter menu items based on module access AND module enabled status in settings
+    // Filter menu items based on module access AND module enabled status in settings
   const filteredMenuItems = menuItems.filter(item => {
+    // Handle dashboard items - show only the appropriate dashboard for each role
+    if (item.module === 'dashboard') {
+      // For Super User, show only the main dashboard
+      if (user?.role === 'Super User') {
+        return item.path === '/dashboard';
+      }
+      // For other roles, show only their specific dashboard
+      if (item.roleRestriction && user?.role === item.roleRestriction) {
+        return true;
+      }
+      return false;
+    }
+    
     // Always show items without module restriction (like Profile)
     if (!item.module) return true;
     
@@ -183,16 +240,16 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ease-in-out md:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-80 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ease-in-out md:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
           {/* Logo and Company Name */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              <div className="relative flex-shrink-0">
                 {companyLogo ? (
-                  <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg transform hover:scale-110 transition-transform duration-200 border border-slate-200 dark:border-slate-600">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg transform hover:scale-110 transition-transform duration-200 border border-slate-200 dark:border-slate-600">
                     <img 
                       src={companyLogo} 
                       alt="Company Logo" 
@@ -213,17 +270,17 @@ export default function Sidebar({ isOpen, onClose }) {
                     />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200">
-                    <Factory className="w-6 h-6 text-white" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200">
+                    <Factory className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                 )}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
               </div>
-              <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <div className="min-w-0">
+                <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate block">
                   {companyName}
                 </span>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Enterprise Suite</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Enterprise Suite</p>
               </div>
             </div>
             <Button
@@ -239,12 +296,21 @@ export default function Sidebar({ isOpen, onClose }) {
 
 
           {/* Navigation Menu */}
-          <ScrollArea className="flex-1 px-4 py-4">
+          <ScrollArea className="flex-1 px-3 sm:px-4 py-4">
             <nav className="space-y-2">
               {filteredMenuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.path || 
-                  (item.path === '/dashboard' && location === '/');
+                  (item.module === 'dashboard' && location === '/') ||
+                  (item.module === 'dashboard' && (
+                    location === '/unit-head-dashboard' ||
+                    location === '/production-dashboard' ||
+                    location === '/packing-dashboard' ||
+                    location === '/dispatch-dashboard' ||
+                    location === '/accounts-dashboard' ||
+                    location === '/sales-dashboard' ||
+                    location === '/dashboard'
+                  ));
                 const hasSubmodules = item.submodules && item.submodules.length > 0;
                 const isExpanded = expandedModules[item.module];
                 const hasAccessibleSubmodules = hasSubmodules && 
@@ -259,7 +325,7 @@ export default function Sidebar({ isOpen, onClose }) {
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start h-12 px-4 transition-all duration-200 group relative overflow-hidden",
+                            "w-full justify-start h-12 sm:h-12 px-3 sm:px-4 transition-all duration-200 group relative overflow-hidden",
                             "text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 hover:text-slate-900 dark:hover:text-slate-100"
                           )}
                           onClick={(e) => {
@@ -269,9 +335,9 @@ export default function Sidebar({ isOpen, onClose }) {
                           }}
                         >
                           <Icon className={cn(
-                            "w-5 h-5 mr-3 transition-all duration-200 group-hover:scale-110"
+                            "w-5 h-5 mr-2 sm:mr-3 transition-all duration-200 group-hover:scale-110"
                           )} />
-                          <span className="font-medium">{item.label}</span>
+                          <span className="font-medium text-sm sm:text-base">{item.label}</span>
                           <div className="ml-auto">
                             {isExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -286,7 +352,7 @@ export default function Sidebar({ isOpen, onClose }) {
                             <Button
                               variant={isActive ? "default" : "ghost"}
                               className={cn(
-                                "w-full justify-start h-12 px-4 transition-all duration-200 group relative overflow-hidden",
+                                "w-full justify-start h-12 sm:h-12 px-3 sm:px-4 transition-all duration-200 group relative overflow-hidden",
                                 isActive
                                   ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                                   : "text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 hover:text-slate-900 dark:hover:text-slate-100"
@@ -294,10 +360,10 @@ export default function Sidebar({ isOpen, onClose }) {
                               onClick={onClose}
                             >
                               <Icon className={cn(
-                                "w-5 h-5 mr-3 transition-all duration-200",
+                                "w-5 h-5 mr-2 sm:mr-3 transition-all duration-200",
                                 isActive ? "drop-shadow-sm" : "group-hover:scale-110"
                               )} />
-                              <span className="font-medium">{item.label}</span>
+                              <span className="font-medium text-sm sm:text-base">{item.label}</span>
                               {isActive && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50" />
                               )}
@@ -329,7 +395,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
                     {/* Submodules */}
                     {hasAccessibleSubmodules && isExpanded && (
-                      <div className="ml-8 space-y-1">
+                      <div className="ml-6 sm:ml-8 space-y-1">
                         {item.submodules
                           .filter(sub => hasFeatureAccess(item.module, sub.feature, 'view'))
                           .map((submodule) => {
@@ -340,14 +406,14 @@ export default function Sidebar({ isOpen, onClose }) {
                                   variant={isSubActive ? "default" : "ghost"}
                                   size="sm"
                                   className={cn(
-                                    "w-full justify-start h-9 px-3 transition-all duration-200",
+                                    "w-full justify-start h-9 sm:h-9 px-2 sm:px-3 transition-all duration-200",
                                     isSubActive
                                       ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                                   )}
                                   onClick={onClose}
                                 >
-                                  <span className="text-sm">{submodule.label}</span>
+                                  <span className="text-xs sm:text-sm">{submodule.label}</span>
                                 </Button>
                               </Link>
                             );

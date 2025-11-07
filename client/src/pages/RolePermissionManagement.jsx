@@ -63,19 +63,9 @@ const UNITS = [
 
 const MODULES = [
   {
-    name: 'dashboard',
-    label: 'Dashboard',
-    features: [
-      { key: 'overview', label: 'Overview' },
-      { key: 'analytics', label: 'Analytics' }
-    ]
-  },
-
-  {
     name: 'sales',
     label: 'Sales',
     features: [
-      { key: 'salesDashboard', label: 'Sales Dashboard' },
       { key: 'orders', label: 'My Orders' },
       { key: 'myCustomers', label: 'My Customers' },
       { key: 'myDeliveries', label: 'My Dispatches' },
@@ -379,7 +369,7 @@ export default function RolePermissionManagement() {
     const rolePermissions = {
       role: role.toLowerCase().replace(' ', '_'),
       unit: formData.unit,
-      canAccessAllUnits: role === 'Super User',
+      canAccessAllUnits: role === 'Super User' || role === 'Unit Head',
       modules: getDefaultModulesForRole(role)
     };
     
@@ -405,13 +395,24 @@ export default function RolePermissionManagement() {
             delete: true
           }))
         }));
+      case 'Unit Head':
+        return MODULES.map(module => ({
+          name: module.name,
+          dashboard: true,
+          features: module.features.map(feature => ({
+            key: feature.key,
+            view: true,
+            add: true,
+            edit: true,
+            delete: true
+          }))
+        }));
       case 'Sales':
         return [
           {
             name: 'sales',
             dashboard: true,
             features: [
-              { key: 'salesDashboard', view: true, add: true, edit: true, delete: true, alter: true },
               { key: 'orders', view: true, add: true, edit: true, delete: true, alter: true },
               { key: 'myCustomers', view: true, add: true, edit: true, delete: true, alter: true },
               { key: 'myDeliveries', view: true, add: false, edit: false, delete: false, alter: false },
@@ -426,27 +427,41 @@ export default function RolePermissionManagement() {
   };
 
   const updateModulePermission = (moduleName, enabled) => {
-    const updatedModules = enabled 
-      ? [...formData.permissions.modules, {
-          name: moduleName,
-          dashboard: true,
-          features: MODULES.find(m => m.name === moduleName)?.features.map(f => ({
-            key: f.key,
-            view: false,
-            add: false,
-            edit: false,
-            delete: false
-          })) || []
-        }]
-      : formData.permissions.modules.filter(m => m.name !== moduleName);
-
-    setFormData({
-      ...formData,
-      permissions: {
-        ...formData.permissions,
-        modules: updatedModules
-      }
-    });
+    if (enabled) {
+      // When enabling a module, add it with all features enabled
+      const newModule = {
+        name: moduleName,
+        dashboard: true,
+        features: MODULES.find(m => m.name === moduleName)?.features.map(f => ({
+          key: f.key,
+          view: true,
+          add: true,
+          edit: true,
+          delete: true
+        })) || []
+      };
+      
+      const updatedModules = [...formData.permissions.modules.filter(m => m.name !== moduleName), newModule];
+      
+      setFormData({
+        ...formData,
+        permissions: {
+          ...formData.permissions,
+          modules: updatedModules
+        }
+      });
+    } else {
+      // When disabling a module, remove it completely
+      const updatedModules = formData.permissions.modules.filter(m => m.name !== moduleName);
+      
+      setFormData({
+        ...formData,
+        permissions: {
+          ...formData.permissions,
+          modules: updatedModules
+        }
+      });
+    }
   };
 
   const updateFeaturePermission = (moduleName, featureKey, action, value) => {
@@ -482,6 +497,42 @@ export default function RolePermissionManagement() {
     const module = formData.permissions.modules.find(m => m.name === moduleName);
     const feature = module?.features.find(f => f.key === featureKey);
     return feature?.[action] || false;
+  };
+
+  const handleCanAccessAllUnitsChange = (checked) => {
+    if (checked) {
+      // Enable all modules with full permissions
+      const allModulesWithFullPermissions = MODULES.map(module => ({
+        name: module.name,
+        dashboard: true,
+        features: module.features.map(feature => ({
+          key: feature.key,
+          view: true,
+          add: true,
+          edit: true,
+          delete: true
+        }))
+      }));
+      
+      setFormData({
+        ...formData,
+        permissions: {
+          ...formData.permissions,
+          canAccessAllUnits: true,
+          modules: allModulesWithFullPermissions
+        }
+      });
+    } else {
+      // Disable all modules
+      setFormData({
+        ...formData,
+        permissions: {
+          ...formData.permissions,
+          canAccessAllUnits: false,
+          modules: []
+        }
+      });
+    }
   };
 
   const giveAllPermissions = () => {
@@ -559,7 +610,7 @@ export default function RolePermissionManagement() {
                     id="username"
                     value={formData.username}
                     onChange={(e) => setFormData({...formData, username: e.target.value})}
-                    placeholder="jeet"
+                    placeholder="test"
                   />
                 </div>
                 <div>
@@ -569,7 +620,7 @@ export default function RolePermissionManagement() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="jeet@gmail.com"
+                    placeholder="test@gmail.com"
                   />
                 </div>
                 <div>
@@ -578,7 +629,7 @@ export default function RolePermissionManagement() {
                     id="fullName"
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    placeholder="jeetu prajapati"
+                    placeholder="test"
                   />
                 </div>
               </div>
@@ -622,10 +673,7 @@ export default function RolePermissionManagement() {
                 <Switch
                   id="canAccessAllUnits"
                   checked={formData.permissions.canAccessAllUnits}
-                  onCheckedChange={(checked) => setFormData({
-                    ...formData,
-                    permissions: { ...formData.permissions, canAccessAllUnits: checked }
-                  })}
+                  onCheckedChange={handleCanAccessAllUnitsChange}
                 />
                 <Label htmlFor="canAccessAllUnits">Can Access All Units</Label>
               </div>
@@ -1027,10 +1075,7 @@ export default function RolePermissionManagement() {
                 <Switch
                   id="edit-canAccessAllUnits"
                   checked={formData.permissions.canAccessAllUnits}
-                  onCheckedChange={(checked) => setFormData({
-                    ...formData,
-                    permissions: { ...formData.permissions, canAccessAllUnits: checked }
-                  })}
+                  onCheckedChange={handleCanAccessAllUnitsChange}
                 />
                 <Label htmlFor="edit-canAccessAllUnits">Can Access All Units</Label>
               </div>
