@@ -1,6 +1,6 @@
 import User from '../models/User.js';
 import { generateToken } from '../middleware/auth.js';
-import { getUserPermissions } from '../middleware/permissions.js';
+import { getUserPermissions, getUserModules } from '../middleware/permissions.js';
 import bcrypt from 'bcryptjs';
 
 const login = async (req, res) => {
@@ -52,11 +52,7 @@ const login = async (req, res) => {
       isActive: user.isActive,
       modules: userModules,
       lastLogin: user.lastLogin,
-      permissions: {
-        canManageUsers: ['Super User', 'Unit Head'].includes(user.role),
-        canAccessSettings: user.role === 'Super User',
-        modules: userModules
-      }
+      permissions: userModules // Always return simple module names array
     };
 
     const response = {
@@ -67,6 +63,8 @@ const login = async (req, res) => {
     };
     
     console.log('=== LOGIN SUCCESS - SENDING RESPONSE ===');
+    console.log('User modules for role', user.role, ':', userModules);
+    console.log('Response user permissions:', userResponse.permissions);
     console.log('User:', userResponse.username, 'Role:', userResponse.role);
     
     res.status(200).json(response);
@@ -94,6 +92,8 @@ const getCurrentUser = async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
+    const userModulesForCurrentUser = getUserModules(user.role);
+    
     const userResponse = {
       id: user._id,
       username: user.username,
@@ -104,7 +104,7 @@ const getCurrentUser = async (req, res) => {
       unit: user.unit,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
-      permissions: getUserPermissions(user)
+      permissions: userModulesForCurrentUser // Always return simple module names array
     };
 
     res.json(userResponse);

@@ -47,6 +47,7 @@ import { showSuccessToast, showSmartToast } from '@/lib/toast-utils';
 const ROLES = [
   { value: 'Super User', label: 'Super User' },
   { value: 'Unit Head', label: 'Unit Head' },
+  { value: 'Unit Manager', label: 'Unit Manager' },
   { value: 'Production', label: 'Production' },
   { value: 'Packing', label: 'Packing' },
   { value: 'Dispatch', label: 'Dispatch' },
@@ -62,6 +63,58 @@ const UNITS = [
 ];
 
 const MODULES = [
+  {
+    name: 'unitManager',
+    label: 'Unit Manager',
+    features: [
+      { key: 'salesApproval', label: 'Sales Approval' },
+      { key: 'salesOrderList', label: 'Sales Order List' }
+    ]
+  },
+  {
+    name: 'unitHead',
+    label: 'Unit Head',
+    features: [
+      { key: 'dashboard', label: 'Dashboard' },
+      { key: 'orders', label: 'Orders' },
+      { key: 'sales', label: 'Sales' },
+      { key: 'dispatches', label: 'Dispatches' },
+      { key: 'accounts', label: 'Accounts' },
+      { key: 'inventory', label: 'Inventory' },
+      { key: 'customers', label: 'Customers' },
+      { key: 'suppliers', label: 'Suppliers' },
+      { key: 'purchases', label: 'Purchases' },
+      { key: 'manufacturing', label: 'Manufacturing' },
+      { key: 'production', label: 'Production' },
+    ]
+  },
+  {
+    name: 'dashboard',
+    label: 'Dashboard',
+    features: [
+      { key: 'overview', label: 'Overview' },
+      { key: 'analytics', label: 'Analytics' },
+      { key: 'reports', label: 'Reports' }
+    ]
+  },
+  {
+    name: 'orders',
+    label: 'Orders',
+    features: [
+      { key: 'allOrders', label: 'All Orders' },
+      { key: 'createOrder', label: 'Create Order' },
+      { key: 'orderReports', label: 'Order Reports' }
+    ]
+  },
+  {
+    name: 'purchases',
+    label: 'Purchases',
+    features: [
+      { key: 'allPurchases', label: 'All Purchases' },
+      { key: 'createPurchase', label: 'Create Purchase' },
+      { key: 'purchaseReports', label: 'Purchase Reports' }
+    ]
+  },
   {
     name: 'sales',
     label: 'Sales',
@@ -369,7 +422,7 @@ export default function RolePermissionManagement() {
     const rolePermissions = {
       role: role.toLowerCase().replace(' ', '_'),
       unit: formData.unit,
-      canAccessAllUnits: role === 'Super User' || role === 'Unit Head',
+      canAccessAllUnits: role === 'Super User',
       modules: getDefaultModulesForRole(role)
     };
     
@@ -396,17 +449,37 @@ export default function RolePermissionManagement() {
           }))
         }));
       case 'Unit Head':
-        return MODULES.map(module => ({
-          name: module.name,
-          dashboard: true,
-          features: module.features.map(feature => ({
-            key: feature.key,
-            view: true,
-            add: true,
-            edit: true,
-            delete: true
-          }))
-        }));
+        return [
+          {
+            name: 'unitHead',
+            dashboard: true,
+            features: [
+              { key: 'dashboard', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'orders', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'sales', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'dispatches', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'accounts', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'inventory', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'customers', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'suppliers', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'purchases', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'manufacturing', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'production', view: true, add: false, edit: false, delete: false, alter: false },
+              { key: 'settings', view: true, add: false, edit: false, delete: false, alter: false }
+            ]
+          }
+        ];
+      case 'Unit Manager':
+        return [
+          {
+            name: 'unitManager',
+            dashboard: true,
+            features: [
+              { key: 'salesApproval', view: true, add: true, edit: true, delete: true, alter: false },
+              { key: 'salesOrderList', view: true, add: true, edit: true, delete: true, alter: false }
+            ]
+          }
+        ];
       case 'Sales':
         return [
           {

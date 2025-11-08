@@ -64,6 +64,22 @@ export const checkPermission = (module, feature, action) => {
   };
 };
 
+// Get user modules based on role
+export const getUserModules = (role) => {
+  const moduleMap = {
+    'Super User': ['Dashboard', 'Manufacturing', 'Dispatches', 'Sales', 'Accounts', 'Inventory', 'Customers', 'Suppliers', 'Purchases', 'Settings'],
+    'Unit Head': ['Dashboard', 'Manufacturing', 'Dispatches', 'Sales', 'Accounts', 'Inventory', 'Customers'],
+    'Unit Manager': ['Dashboard', 'Sales Approval', 'Manufacturing', 'Dispatches', 'Inventory'],
+    'Production': ['Dashboard', 'Manufacturing'],
+    'Packing': ['Dashboard', 'Manufacturing', 'Dispatches'],
+    'Dispatch': ['Dashboard', 'Dispatches'],
+    'Accounts': ['Dashboard', 'Accounts', 'Sales'],
+    'Sales': ['Dashboard', 'Sales', 'Customers']
+  };
+  
+  return moduleMap[role] || ['Dashboard'];
+};
+
 // Helper function to check if user can access all units
 export const checkUnitAccess = (req, res, next) => {
   const user = req.user;
@@ -179,7 +195,56 @@ export const getUserPermissions = (user) => {
     };
   }
 
-  // Return user's specific permissions
+  // Unit Manager gets permissions for sales management and production oversight
+  if (user.role === 'Unit Manager') {
+    return {
+      role: 'unit_manager',
+      canAccessAllUnits: true,
+      modules: [
+        {
+          name: 'dashboard',
+          dashboard: true,
+          features: [
+            { key: 'overview', view: true, add: false, edit: false, delete: false, alter: false },
+            { key: 'analytics', view: true, add: false, edit: false, delete: false, alter: false }
+          ]
+        },
+        {
+          name: 'sales_approval',
+          dashboard: true,
+          features: [
+            { key: 'orders', view: true, add: false, edit: true, delete: false, alter: true },
+            { key: 'approval_workflow', view: true, add: false, edit: true, delete: false, alter: true }
+          ]
+        },
+        {
+          name: 'manufacturing',
+          dashboard: true,
+          features: [
+            { key: 'allJobs', view: true, add: false, edit: true, delete: false, alter: true }
+          ]
+        },
+        {
+          name: 'dispatches',
+          dashboard: true,
+          features: [
+            { key: 'dispatchNotes', view: true, add: false, edit: false, delete: false, alter: false },
+            { key: 'proofOfDelivery', view: true, add: false, edit: false, delete: false, alter: false }
+          ]
+        },
+        {
+          name: 'inventory',
+          dashboard: true,
+          features: [
+            { key: 'items', view: true, add: false, edit: false, delete: false, alter: false },
+            { key: 'categories', view: true, add: false, edit: false, delete: false, alter: false }
+          ]
+        }
+      ]
+    };
+  }
+
+  // Return user's specific permissions for other roles
   return user.permissions || {
     role: user.role.toLowerCase().replace(' ', '_'),
     canAccessAllUnits: false,

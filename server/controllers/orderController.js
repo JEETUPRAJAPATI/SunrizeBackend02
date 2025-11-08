@@ -101,12 +101,15 @@ const createOrder = async (req, res) => {
     const order = new Order({
       orderCode,
       customer: customerId,
+      salesPerson: req.user._id || req.user.id, // Use _id or id from authenticated user
       orderDate: new Date(orderDate),
       products: orderProducts,
       totalAmount,
       status: 'Pending',
       notes
     });
+
+    console.log('Creating order with salesPerson:', req.user._id || req.user.id, 'User:', req.user.username);
 
     await order.save();
 
@@ -359,10 +362,10 @@ const deleteOrder = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, remarks } = req.body;
 
-    // Validate status
-    const validStatuses = ['Pending', 'Approved', 'Completed', 'Cancelled'];
+    // Enhanced validation for Unit Manager workflow
+    const validStatuses = ['Pending', 'Approved', 'Disapproved', 'In_Production', 'Completed', 'Cancelled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -378,18 +381,72 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Update only the status
+    // Role-based permissions for status updates
+    const userRole = req.user.role;
+    
+    // Unit Manager can update any status
+    if (userRole === 'Unit Manager' || userRole === 'Super User') {
+      // Allow all status updates
+    }
+    // Sales can only update to Cancelled if pending
+    else if (userRole === 'Sales') {
+      if (order.salesPerson?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only update your own orders'
+        });
+      }
+      if (status !== 'Cancelled' || order.status !== 'Pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Sales can only cancel pending orders'
+        });
+      }
+    }
+    // Other roles have limited permissions
+    else {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions to update order status'
+      });
+    }
+
+    // Set context for status history (if schema supports it)
+    if (order.statusHistory) {
+      order._updatedBy = req.user._id;
+      order._statusRemarks = remarks || '';
+    }
+
+    // Update fields based on status
+    const oldStatus = order.status;
     order.status = status;
+    
+    if (status === 'Approved') {
+      order.approvedBy = req.user._id;
+      order.approvedAt = new Date();
+    } else if (status === 'Disapproved') {
+      order.rejectionReason = remarks;
+    } else if (status === 'In_Production') {
+      order.productionStartDate = new Date();
+    } else if (status === 'Completed') {
+      order.productionEndDate = new Date();
+      if (!order.actualDeliveryDate) {
+        order.actualDeliveryDate = new Date();
+      }
+    }
+
     await order.save();
 
     // Populate the updated order
     const updatedOrder = await Order.findById(id)
       .populate('customer', 'name email mobile address city state')
-      .populate('products.product', 'name price brand image');
+      .populate('products.product', 'name price brand image')
+      .populate('salesPerson', 'username fullName email')
+      .populate('approvedBy', 'username fullName');
 
     res.json({
       success: true,
-      message: `Order status updated to ${status}`,
+      message: `Order status updated from ${oldStatus} to ${status}`,
       order: updatedOrder
     });
 

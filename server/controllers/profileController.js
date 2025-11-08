@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { getUserModules } from '../middleware/permissions.js';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -55,6 +56,9 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Get simple module names for the user's role
+    const userModules = getUserModules(user.role);
+
     const profileData = {
       id: user._id,
       username: user.username,
@@ -63,7 +67,7 @@ export const getProfile = async (req, res) => {
       profilePicture: user.profilePicture ? `/uploads/profiles/${user.profilePicture}` : null,
       role: user.role,
       unit: user.unit,
-      permissions: user.permissions,
+      permissions: userModules, // Use simple module names instead of complex DB permissions
       profile: user.profile
     };
     

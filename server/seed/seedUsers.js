@@ -117,34 +117,21 @@ const createSeedUsers = async () => {
           canAccessAllUnits: false,
           modules: [
             {
-              name: 'dashboard',
+              name: 'unitHead',
               dashboard: true,
               features: [
-                { key: 'overview', view: true, add: false, edit: false, delete: false, alter: false }
-              ]
-            },
-            {
-              name: 'orders',
-              dashboard: true,
-              features: [
-                { key: 'allOrders', view: true, add: true, edit: true, delete: false, alter: false }
-              ]
-            },
-            {
-              name: 'sales',
-              dashboard: true,
-              features: [
-                { key: 'myCustomers', view: true, add: true, edit: false, delete: false, alter: false },
-                { key: 'invoices', view: true, add: false, edit: false, delete: false, alter: false },
-                { key: 'ledger', view: false, add: false, edit: false, delete: false, alter: false }
-              ]
-            },
-            {
-              name: 'inventory',
-              dashboard: true,
-              features: [
-                { key: 'stockIn', view: true, add: false, edit: true, delete: false, alter: false },
-                { key: 'stockOut', view: false, add: false, edit: false, delete: false, alter: false }
+                { key: 'dashboard', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'orders', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'sales', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'dispatches', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'accounts', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'inventory', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'customers', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'suppliers', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'purchases', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'manufacturing', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'production', view: true, add: false, edit: false, delete: false, alter: false },
+                { key: 'settings', view: true, add: false, edit: false, delete: false, alter: false }
               ]
             }
           ]

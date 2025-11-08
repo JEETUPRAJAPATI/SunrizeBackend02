@@ -2,6 +2,7 @@
 const USER_ROLES = {
   SUPER_USER: 'Super User',
   UNIT_HEAD: 'Unit Head',
+  UNIT_MANAGER: 'Unit Manager',
   PRODUCTION: 'Production',
   PACKING: 'Packing',
   DISPATCH: 'Dispatch',

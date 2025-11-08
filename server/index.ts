@@ -158,7 +158,8 @@ app.use('/uploads', express.static('uploads'));
       app.use('/api/companies', companyRoutes);
       console.log('Company routes registered at /api/companies');
 
-      const { default: orderRoutes, salesRouter } = await import('./routes/orderRoutes.js');
+      const { default: orderRoutes } = await import('./routes/orderRoutes.js');
+      const salesRouter = (await import('./routes/salesRoutes.js')).default;
       app.use('/api/orders', orderRoutes);
       app.use('/api/sales', salesRouter);
       console.log('Order routes registered at /api/orders');
@@ -176,7 +177,13 @@ app.use('/uploads', express.static('uploads'));
       app.use('/api', notificationRoutes);
       console.log('Notification routes registered at /api');
 
+      const unitManagerRoutes = (await import('./routes/unitManagerRoutes.js')).default;
+      app.use('/api/unit-manager', unitManagerRoutes);
+      console.log('Unit Manager routes registered at /api/unit-manager');
 
+      const unitHeadRoutes = (await import('./routes/unitHeadRoutes.js')).default;
+      app.use('/api/unit-head', unitHeadRoutes);
+      console.log('Unit Head routes registered at /api/unit-head');
 
       // Customer seeding available via endpoint only
 

@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import Dashboard from "@/pages/Dashboard";
 import SalesDashboard from "@/pages/SalesDashboard";
 import UnitHeadDashboard from "@/pages/UnitHeadDashboard";
+import UnitManagerDashboard from "@/pages/UnitManagerDashboard";
 import ProductionDashboard from "@/pages/ProductionDashboard";
 import PackingDashboard from "@/pages/PackingDashboard";
 import DispatchDashboard from "@/pages/DispatchDashboard";
@@ -19,6 +20,9 @@ export default function RoleBasedDashboard() {
       switch (user.role) {
         case 'Unit Head':
           setLocation('/unit-head-dashboard');
+          return;
+        case 'Unit Manager':
+          setLocation('/unit-manager-dashboard');
           return;
         case 'Sales':
           setLocation('/sales-dashboard');
@@ -46,6 +50,8 @@ export default function RoleBasedDashboard() {
   switch (user?.role) {
     case 'Unit Head':
       return <UnitHeadDashboard />;
+    case 'Unit Manager':
+      return <UnitManagerDashboard />;
     case 'Sales':
       return <SalesDashboard />;
     case 'Production':

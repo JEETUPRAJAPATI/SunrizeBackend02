@@ -35,10 +35,18 @@ import ProductionHistoryPage from "@/pages/ProductionHistoryPage";
 import RoleBasedDashboard from "@/components/layout/RoleBasedDashboard";
 import NotificationsPage from "@/pages/NotificationsPage";
 import UnitHeadDashboard from "@/pages/UnitHeadDashboard";
+import UnitHeadOrders from "@/pages/UnitHeadOrders";
+import UnitHeadSales from "@/pages/UnitHeadSales";
+import UnitHeadCustomers from "@/pages/UnitHeadCustomers";
+import UnitManagerDashboard from "@/pages/UnitManagerDashboard";
 import ProductionDashboard from "@/pages/ProductionDashboard";
 import PackingDashboard from "@/pages/PackingDashboard";
 import DispatchDashboard from "@/pages/DispatchDashboard";
 import AccountsDashboard from "@/pages/AccountsDashboard";
+import SalesApproval from "@/pages/SalesApproval";
+import SalesOrderList from "@/pages/SalesOrderList";
+import UnitManagerLayout from "@/components/layout/UnitManagerLayout";
+import RoleBasedLayout from "@/components/layout/RoleBasedLayout";
 function ProtectedRoute({ children, requiredRole = null }) {
   const { user, loading } = useAuth();
 
@@ -74,6 +82,61 @@ function ProtectedRoute({ children, requiredRole = null }) {
   return <MainLayout>{children}</MainLayout>;
 }
 
+// Separate protected route for Unit Manager with their own layout
+function UnitManagerProtectedRoute({ children, requiredRole = null }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  // Check role restriction if specified - STRICT role checking
+  // Exception: Super User can access all pages regardless of role restriction
+  if (requiredRole && user.role !== requiredRole && user.role !== 'Super User') {
+    return (
+      <UnitManagerLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              You don't have permission to access this page. Required role: {requiredRole}
+            </p>
+          </div>
+        </div>
+      </UnitManagerLayout>
+    );
+  }
+
+  return <UnitManagerLayout>{children}</UnitManagerLayout>;
+}
+
+// Protected route that uses appropriate layout based on user role
+function RoleBasedProtectedRoute({ children, requiredRole = null }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return <RoleBasedLayout requiredRole={requiredRole}>{children}</RoleBasedLayout>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -90,9 +153,9 @@ function Router() {
       </Route>
 
       <Route path="/manufacturing">
-        <ProtectedRoute>
+        <RoleBasedProtectedRoute>
           <Manufacturing />
-        </ProtectedRoute>
+        </RoleBasedProtectedRoute>
       </Route>
       <Route path="/production">
         <ProtectedRoute requiredRole="Production">
@@ -105,9 +168,9 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/dispatches">
-        <ProtectedRoute>
+        <RoleBasedProtectedRoute>
           <Dispatches />
-        </ProtectedRoute>
+        </RoleBasedProtectedRoute>
       </Route>
       {/* Sales Submodules - specific routes first */}
       <Route path="/sales/orders">
@@ -150,15 +213,16 @@ function Router() {
           <SalesDashboard />
         </ProtectedRoute>
       </Route>
+      
       <Route path="/accounts">
         <ProtectedRoute>
           <Accounts />
         </ProtectedRoute>
       </Route>
       <Route path="/inventory">
-        <ProtectedRoute>
+        <RoleBasedProtectedRoute>
           <ModernInventoryUI />
-        </ProtectedRoute>
+        </RoleBasedProtectedRoute>
       </Route>
       <Route path="/customers">
         <ProtectedRoute>
@@ -206,6 +270,42 @@ function Router() {
         <ProtectedRoute requiredRole="Unit Head">
           <UnitHeadDashboard />
         </ProtectedRoute>
+      </Route>
+      
+      {/* Unit Head specific routes */}
+      <Route path="/unit-head/orders">
+        <ProtectedRoute requiredRole="Unit Head">
+          <UnitHeadOrders />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/unit-head/sales">
+        <ProtectedRoute requiredRole="Unit Head">
+          <UnitHeadSales />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/unit-head/customers">
+        <ProtectedRoute requiredRole="Unit Head">
+          <UnitHeadCustomers />
+        </ProtectedRoute>
+      </Route>
+      
+      {/* Unit Manager specific routes with dedicated layout */}
+      <Route path="/unit-manager-dashboard">
+        <UnitManagerProtectedRoute requiredRole="Unit Manager">
+          <UnitManagerDashboard />
+        </UnitManagerProtectedRoute>
+      </Route>
+      
+      <Route path="/sales-approval">
+        <UnitManagerProtectedRoute requiredRole="Unit Manager">
+          <SalesApproval />
+        </UnitManagerProtectedRoute>
+      </Route>
+      
+      <Route path="/sales-order-list">
+        <UnitManagerProtectedRoute requiredRole="Unit Manager">
+          <SalesOrderList />
+        </UnitManagerProtectedRoute>
       </Route>
       <Route path="/production-dashboard">
         <ProtectedRoute requiredRole="Production">

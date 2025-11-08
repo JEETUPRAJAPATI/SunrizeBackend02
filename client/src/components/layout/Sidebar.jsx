@@ -41,6 +41,13 @@ const menuItems = [
   },
   {
     label: 'Dashboard',
+    path: '/unit-manager-dashboard',
+    icon: LayoutDashboard,
+    module: 'dashboard',
+    roleRestriction: 'Unit Manager'
+  },
+  {
+    label: 'Dashboard',
     path: '/production-dashboard',
     icon: LayoutDashboard,
     module: 'dashboard',
@@ -83,6 +90,98 @@ const menuItems = [
     roleRestriction: 'Super User'
   },
 
+  // Unit Head specific navigation items
+  {
+    label: 'Orders',
+    path: '/unit-head/orders',
+    icon: Receipt,
+    module: 'orders',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Sales',
+    path: '/unit-head/sales',
+    icon: TrendingUp,
+    module: 'sales',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Dispatches',
+    path: '/unit-head/dispatches',
+    icon: Truck,
+    module: 'dispatches',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Accounts',
+    path: '/unit-head/accounts',
+    icon: Calculator,
+    module: 'accounts',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Inventory',
+    path: '/unit-head/inventory',
+    icon: Package,
+    module: 'inventory',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Customers',
+    path: '/unit-head/customers',
+    icon: Users,
+    module: 'customers',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Suppliers',
+    path: '/unit-head/suppliers',
+    icon: Handshake,
+    module: 'suppliers',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Purchases',
+    path: '/unit-head/purchases',
+    icon: Building,
+    module: 'purchases',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Manufacturing',
+    path: '/unit-head/manufacturing',
+    icon: Cog,
+    module: 'manufacturing',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Production',
+    path: '/unit-head/production',
+    icon: Factory,
+    module: 'production',
+    roleRestriction: 'Unit Head'
+  },
+  {
+    label: 'Settings',
+    path: '/unit-head/settings',
+    icon: Settings,
+    module: 'settings',
+    roleRestriction: 'Unit Head'
+  },
+
+  // General navigation items (for other roles)
+  {
+    label: 'Orders',
+    path: '/orders',
+    icon: Receipt,
+    module: 'orders'
+  },
+  {
+    label: 'Purchases',
+    path: '/purchases',
+    icon: Building,
+    module: 'purchases'
+  },
   {
     label: 'Manufacturing',
     path: '/manufacturing',
@@ -124,6 +223,22 @@ const menuItems = [
     ]
   },
   {
+    label: 'Sales Approval',
+    path: '/sales-approval',
+    icon: Shield,
+    module: 'unitManager',
+    feature: 'salesApproval',
+    roleRestriction: 'Unit Manager'
+  },
+  {
+    label: 'Sales Order List',
+    path: '/sales-order-list',
+    icon: TrendingUp,
+    module: 'unitManager',
+    feature: 'salesOrderList',
+    roleRestriction: 'Unit Manager'
+  },
+  {
     label: 'Accounts',
     path: '/accounts',
     icon: Calculator,
@@ -157,12 +272,6 @@ const menuItems = [
     path: '/companies',
     icon: Building2,
     module: 'companies'
-  },
-  {
-    label: 'Purchases',
-    path: '/purchases',
-    icon: Receipt,
-    module: 'purchases'
   }
 ];
 
@@ -211,14 +320,33 @@ export default function Sidebar({ isOpen, onClose }) {
     // Always show items without module restriction (like Profile)
     if (!item.module) return true;
     
-    // Check role restriction if specified - STRICT role checking for Production module
-    // Exception: Super User can access all modules regardless of role restriction
-    if (item.roleRestriction && user?.role !== item.roleRestriction && user?.role !== 'Super User') {
-      return false;
+    // Role-specific filtering to prevent duplicates
+    if (user?.role === 'Unit Head') {
+      // For Unit Head, only show Unit Head specific items (with roleRestriction: 'Unit Head')
+      if (!item.roleRestriction || item.roleRestriction !== 'Unit Head') {
+        return false;
+      }
+    } else {
+      // For other roles, don't show Unit Head specific items
+      if (item.roleRestriction === 'Unit Head') {
+        return false;
+      }
+      // Check other role restrictions
+      if (item.roleRestriction && user?.role !== item.roleRestriction && user?.role !== 'Super User') {
+        return false;
+      }
     }
     
     // Check if user has access to the module
-    if (!hasModuleAccess(item.module)) return false;
+    const hasAccess = hasModuleAccess(item.module);
+    
+    if (!hasAccess) return false;
+    
+    // If item has a specific feature requirement, check feature access
+    if (item.feature) {
+      const hasFeature = hasFeatureAccess(item.module, item.feature, 'view');
+      if (!hasFeature) return false;
+    }
     
     // Check if module is enabled in settings
     if (settings?.modules && settings.modules[item.module] === false) {
